@@ -37,9 +37,7 @@
     .highlight {
       border: 1px solid #ddd;
       border-radius: 4px;
-      padding: 10px;
       margin-bottom: 10px;
-      position: relative;
       background: #f9f9f9;
       cursor: pointer;
       transition: background-color 0.2s;
@@ -47,9 +45,62 @@
     .highlight:hover {
       background-color: #f0f0f0;
     }
+    .highlight-bar {
+      background: #e9ecef;
+      padding: 8px;
+      border-top-left-radius: 4px;
+      border-top-right-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #333;
+      position: relative;
+    }
+    .highlight-bar .highlight-meta {
+      flex-grow: 1;
+      overflow: hidden;
+    }
+    .highlight-bar .highlight-meta a {
+      color: #007bff;
+      text-decoration: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: block;
+    }
+    .highlight-bar .highlight-meta a:hover {
+      text-decoration: underline;
+    }
+    .highlight-bar .highlight-meta span {
+      color: #666;
+    }
+    .highlight-bar .delete-highlight {
+      background: #dc3545;
+      color: white;
+      border: none;
+      width: 24px;
+      height: 24px;
+      cursor: pointer;
+      border-radius: 50%;
+      font-size: 16px;
+      line-height: 24px;
+      text-align: center;
+      padding: 0;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.2s, transform 0.1s;
+      flex-shrink: 0;
+    }
+    .highlight-bar .delete-highlight:hover {
+      background: #b02a37;
+      transform: scale(1.1);
+    }
+    .highlight-content {
+      padding: 10px;
+    }
     .highlight-text {
       font-size: 14px;
-      margin-bottom: 5px;
+      margin: 0;
       word-wrap: break-word;
       display: -webkit-box;
       -webkit-line-clamp: 2;
@@ -62,29 +113,6 @@
       -webkit-line-clamp: unset !important;
       display: block !important;
       overflow: visible !important;
-    }
-    .highlight-meta {
-      font-size: 12px;
-      color: #666;
-    }
-    .delete-highlight {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: #dc3545;
-      color: white;
-      border: none;
-      width: 20px;
-      height: 20px;
-      cursor: pointer;
-      border-radius: 50%;
-      font-size: 14px;
-      line-height: 20px;
-      text-align: center;
-      padding: 0;
-    }
-    .delete-highlight:hover {
-      background: #b02a37;
     }
   </style>
 </head>

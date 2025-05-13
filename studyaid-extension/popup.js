@@ -96,6 +96,20 @@ document.addEventListener('DOMContentLoaded', () => {
           hour12: true
         });
 
+        const barDiv = document.createElement('div');
+        barDiv.className = 'highlight-bar';
+        barDiv.innerHTML = `
+          <div class="highlight-meta">
+            <a href="${highlight.url}" target="_blank">${highlight.url}</a>
+            <br>
+            <span>Saved: ${savedDateTime}</span>
+          </div>
+          <button class="delete-highlight" data-index="${index}">X</button>
+        `;
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'highlight-content';
+
         const textDiv = document.createElement('div');
         textDiv.className = 'highlight-text';
         textDiv.dataset.fullText = highlight.text;
@@ -117,14 +131,9 @@ document.addEventListener('DOMContentLoaded', () => {
           div.dataset.isTruncated = 'true';
         }
 
-        div.appendChild(textDiv);
-        div.innerHTML += `
-          <div class="highlight-meta">
-            From: <a href="${highlight.url}" target="_blank">${highlight.url}</a><br>
-            Saved Date & Time: ${savedDateTime}
-          </div>
-          <button class="delete-highlight" data-index="${index}">X</button>
-        `;
+        contentDiv.appendChild(textDiv);
+        div.appendChild(barDiv);
+        div.appendChild(contentDiv);
         highlightsList.appendChild(div);
       });
 
@@ -134,19 +143,19 @@ document.addEventListener('DOMContentLoaded', () => {
             const textDiv = highlightDiv.querySelector('.highlight-text');
             if (!textDiv.classList.contains('full')) {
               textDiv.classList.add('full');
-              highlightDiv.style.backgroundColor = '#e6f3ff'; // Visual feedback
+              highlightDiv.style.backgroundColor = '#e6f3ff';
             } else {
               textDiv.classList.remove('full');
-              highlightDiv.style.backgroundColor = '#f9f9f9'; // Reset background
+              highlightDiv.style.backgroundColor = '#f9f9f9';
             }
-            e.stopPropagation(); // Prevent event bubbling
+            e.stopPropagation();
           });
         }
       });
 
       document.querySelectorAll('.delete-highlight').forEach((button) => {
         button.addEventListener('click', (e) => {
-          e.stopPropagation(); // Prevent frame click from triggering
+          e.stopPropagation();
           const index = parseInt(button.dataset.index);
           chrome.storage.local.get(['highlights'], (result) => {
             const highlights = result.highlights || [];
