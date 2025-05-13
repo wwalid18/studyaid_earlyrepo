@@ -14,10 +14,15 @@
       border: 1px solid #ddd;
       border-radius: 4px;
     }
+    .current-selection button {
+      margin-bottom: 10px;
+    }
     .current-selection p {
-      margin: 0 0 10px;
+      margin: 0;
       font-size: 14px;
       word-wrap: break-word;
+      max-height: 150px;
+      overflow-y: auto;
     }
     #save-highlight {
       background: #007bff;
@@ -119,8 +124,8 @@
 <body>
   <h2>Text Highlighter</h2>
   <div class="current-selection">
-    <p id="selected-text">No text selected.</p>
     <button id="save-highlight" disabled>Save Highlight</button>
+    <p id="selected-text">No text selected.</p>
   </div>
   <h3>Saved Highlights</h3>
   <div id="highlights-list"></div>
