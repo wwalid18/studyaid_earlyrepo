@@ -41,6 +41,11 @@
       margin-bottom: 10px;
       position: relative;
       background: #f9f9f9;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .highlight:hover {
+      background-color: #f0f0f0;
     }
     .highlight-text {
       font-size: 14px;
@@ -51,10 +56,12 @@
       -webkit-box-orient: vertical;
       overflow: hidden;
       text-overflow: ellipsis;
+      white-space: pre-wrap;
     }
     .highlight-text.full {
-      display: block;
-      -webkit-line-clamp: unset;
+      -webkit-line-clamp: unset !important;
+      display: block !important;
+      overflow: visible !important;
     }
     .highlight-meta {
       font-size: 12px;
@@ -78,14 +85,6 @@
     }
     .delete-highlight:hover {
       background: #b02a37;
-    }
-    .toggle-ellipsis {
-      color: #007bff;
-      cursor: pointer;
-      margin-left: 5px;
-    }
-    .toggle-ellipsis:hover {
-      text-decoration: underline;
     }
   </style>
 </head>

@@ -19,6 +19,10 @@ function updateSelection() {
   });
 }
 
+document.addEventListener('DOMContentLoaded', () => {
+  updateSelection(); // Initial update on page load
+});
+
 document.addEventListener('selectionchange', () => {
   updateSelection();
 });
@@ -32,4 +36,5 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('Selection cleared');
     sendResponse({ success: true });
   }
+  return true; // Keep the message channel open for async responses
 });

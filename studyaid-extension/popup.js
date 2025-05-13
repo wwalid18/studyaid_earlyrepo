@@ -6,8 +6,21 @@ document.addEventListener('DOMContentLoaded', () => {
   function getSelection() {
     return new Promise((resolve) => {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (chrome.runtime.lastError) {
+          console.warn('getSelection failed (tab query):', chrome.runtime.lastError.message);
+          resolve('');
+          return;
+        }
         chrome.tabs.sendMessage(tabs[0].id, { action: 'getSelection' }, (response) => {
-          resolve(response?.selectedText || '');
+          if (chrome.runtime.lastError) {
+            console.warn('getSelection failed:', chrome.runtime.lastError.message);
+            resolve('');
+          } else if (!response) {
+            console.warn('No response from content script');
+            resolve('');
+          } else {
+            resolve(response.selectedText || '');
+          }
         });
       });
     });
@@ -20,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedText = await getSelection();
         selectedTextEl.textContent = selectedText || 'No text selected.';
         saveButton.disabled = !selectedText;
-      }, 100);
+      }, 200);
     } else {
       selectedTextEl.textContent = selectedText || 'No text selected.';
       saveButton.disabled = !selectedText;
@@ -51,7 +64,11 @@ document.addEventListener('DOMContentLoaded', () => {
               selectedTextEl.textContent = 'No text selected.';
               saveButton.disabled = true;
 
-              chrome.tabs.sendMessage(tabs[0].id, { action: 'clearSelection' });
+              chrome.tabs.sendMessage(tabs[0].id, { action: 'clearSelection' }, () => {
+                if (chrome.runtime.lastError) {
+                  console.warn('clearSelection failed:', chrome.runtime.lastError.message);
+                }
+              });
             });
           });
         });
@@ -81,26 +98,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const textDiv = document.createElement('div');
         textDiv.className = 'highlight-text';
+        textDiv.dataset.fullText = highlight.text;
         textDiv.textContent = highlight.text;
 
-        // Check if the text exceeds two lines (simplified check)
-        const lines = highlight.text.split('\n');
-        const needsToggle = lines.length > 2 || highlight.text.length > 100; // Adjust length threshold as needed
-        if (needsToggle) {
-          const ellipsisSpan = document.createElement('span');
-          ellipsisSpan.className = 'toggle-ellipsis';
-          ellipsisSpan.textContent = '...';
-          textDiv.appendChild(ellipsisSpan);
+        const tempDiv = document.createElement('div');
+        tempDiv.style.display = '-webkit-box';
+        tempDiv.style.webkitLineClamp = '2';
+        tempDiv.style.webkitBoxOrient = 'vertical';
+        tempDiv.style.overflow = 'hidden';
+        tempDiv.style.visibility = 'hidden';
+        tempDiv.style.position = 'absolute';
+        tempDiv.textContent = highlight.text;
+        document.body.appendChild(tempDiv);
+        const needsToggle = tempDiv.scrollHeight > tempDiv.clientHeight;
+        document.body.removeChild(tempDiv);
 
-          ellipsisSpan.addEventListener('click', () => {
-            if (textDiv.classList.contains('full')) {
-              textDiv.classList.remove('full');
-              ellipsisSpan.textContent = '...';
-            } else {
-              textDiv.classList.add('full');
-              ellipsisSpan.textContent = ' Collapse';
-            }
-          });
+        if (needsToggle) {
+          div.dataset.isTruncated = 'true';
         }
 
         div.appendChild(textDiv);
@@ -114,8 +128,25 @@ document.addEventListener('DOMContentLoaded', () => {
         highlightsList.appendChild(div);
       });
 
+      document.querySelectorAll('.highlight').forEach((highlightDiv) => {
+        if (highlightDiv.dataset.isTruncated === 'true') {
+          highlightDiv.addEventListener('click', (e) => {
+            const textDiv = highlightDiv.querySelector('.highlight-text');
+            if (!textDiv.classList.contains('full')) {
+              textDiv.classList.add('full');
+              highlightDiv.style.backgroundColor = '#e6f3ff'; // Visual feedback
+            } else {
+              textDiv.classList.remove('full');
+              highlightDiv.style.backgroundColor = '#f9f9f9'; // Reset background
+            }
+            e.stopPropagation(); // Prevent event bubbling
+          });
+        }
+      });
+
       document.querySelectorAll('.delete-highlight').forEach((button) => {
-        button.addEventListener('click', () => {
+        button.addEventListener('click', (e) => {
+          e.stopPropagation(); // Prevent frame click from triggering
           const index = parseInt(button.dataset.index);
           chrome.storage.local.get(['highlights'], (result) => {
             const highlights = result.highlights || [];
