@@ -2,6 +2,18 @@ document.addEventListener('DOMContentLoaded', () => {
   const selectedTextEl = document.getElementById('selected-text');
   const saveButton = document.getElementById('save-highlight');
   const highlightsList = document.getElementById('highlights-list');
+  const exportButton = document.createElement('button');
+  exportButton.id = 'export-highlights';
+  exportButton.textContent = 'Export Highlights';
+  exportButton.style.marginBottom = '10px';
+  exportButton.style.background = '#28a745';
+  exportButton.style.color = 'white';
+  exportButton.style.border = 'none';
+  exportButton.style.padding = '5px 10px';
+  exportButton.style.cursor = 'pointer';
+  exportButton.style.borderRadius = '3px';
+  exportButton.addEventListener('click', exportHighlights);
+  document.querySelector('.current-selection').insertBefore(exportButton, saveButton);
 
   function getSelection() {
     return new Promise((resolve) => {
@@ -78,13 +90,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function renderHighlights() {
     chrome.storage.local.get(['highlights'], (result) => {
-      const highlights = result.highlights || [];
+      let highlights = result.highlights || [];
       highlightsList.innerHTML = '';
       if (highlights.length === 0) {
         highlightsList.innerHTML = '<p>No highlights saved.</p>';
         return;
       }
-      highlights.forEach((highlight, index) => {
+
+      const indexedHighlights = highlights.map((highlight, idx) => ({ ...highlight, originalIndex: idx }));
+      indexedHighlights.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+      indexedHighlights.forEach((highlight, sortedIndex) => {
         const div = document.createElement('div');
         div.className = 'highlight';
         const savedDateTime = new Date(highlight.timestamp).toLocaleString('en-US', {
@@ -104,7 +120,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <br>
             <span>Saved: ${savedDateTime}</span>
           </div>
-          <button class="delete-highlight" data-index="${index}">X</button>
+          <button class="delete-highlight" data-index="${highlight.originalIndex}">X</button>
         `;
 
         const contentDiv = document.createElement('div');
@@ -158,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
           e.stopPropagation();
           const index = parseInt(button.dataset.index);
           chrome.storage.local.get(['highlights'], (result) => {
-            const highlights = result.highlights || [];
+            let highlights = result.highlights || [];
             highlights.splice(index, 1);
             chrome.storage.local.set({ highlights }, () => {
               console.log('Highlight deleted at index:', index);
@@ -166,6 +182,46 @@ document.addEventListener('DOMContentLoaded', () => {
             });
           });
         });
+      });
+    });
+  }
+
+  async function exportHighlights() {
+    chrome.storage.local.get(['highlights'], (result) => {
+      const highlights = result.highlights || [];
+      if (highlights.length === 0) {
+        alert('No highlights to export!');
+        return;
+      }
+
+      const dataToSend = highlights.map(h => ({
+        url: h.url,
+        text: h.text,
+        timestamp: h.timestamp
+      }));
+
+      console.log('Sending data to backend:', dataToSend);
+
+      fetch('http://localhost:5000/api/highlights', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dataToSend)
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`Network response was not ok: ${response.status} ${response.statusText}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Highlights exported successfully:', data);
+        alert('Highlights exported to backend!');
+      })
+      .catch(error => {
+        console.error('Error exporting highlights:', error.message);
+        alert(`Failed to export highlights: ${error.message}. Check the console for details.`);
       });
     });
   }
