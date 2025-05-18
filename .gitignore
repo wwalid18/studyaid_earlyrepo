@@ -1,0 +1,21 @@
+# Ignore Python bytecode
+__pycache__/
+*.py[cod]
+
+# Ignore virtual environments
+venv/
+
+# Ignore environment files
+.env
+
+# Ignore OS or editor files
+.DS_Store
+Thumbs.db
+*.swp
+
+# Ignore compiled files
+*.o
+*.class
+
+# Ignore node modules (for JavaScript projects)
+node_modules/

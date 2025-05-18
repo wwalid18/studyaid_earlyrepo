@@ -14,3 +14,28 @@ class HighlightFacade:
         db.session.bulk_save_objects(highlights)
         db.session.commit()
         return highlights
+
+    @staticmethod
+    def get_all_highlights():
+        return Highlight.query.all()
+
+    @staticmethod
+    def get_highlight_by_id(highlight_id):
+        return Highlight.query.get_or_404(highlight_id)
+
+    @staticmethod
+    def update_highlight(highlight_id, data):
+        highlight = Highlight.query.get_or_404(highlight_id)
+        highlight.url = data.get('url', highlight.url)
+        highlight.text = data.get('text', highlight.text)
+        if 'timestamp' in data:
+            highlight.timestamp = datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00'))
+        db.session.commit()
+        return highlight
+
+    @staticmethod
+    def delete_highlight(highlight_id):
+        highlight = Highlight.query.get_or_404(highlight_id)
+        db.session.delete(highlight)
+        db.session.commit()
+        return True

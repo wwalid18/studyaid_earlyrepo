@@ -1,0 +1,22 @@
+[
+  {
+    "url": "https://example.com",
+    "text": "Sample highlight",
+    "timestamp": "2025-05-17T17:13:00Z"
+  },
+  {
+    "url": "https://morta.com",
+    "text": "morta",
+    "timestamp": "2025-05-17T17:13:00Z"
+  },
+  {
+    "url": "https://example.com/",
+    "text": "This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission.",
+    "timestamp": "2025-05-17T16:24:50.975Z"
+  },
+  {
+    "url": "https://example.com/",
+    "text": "You may use this domain in literature without prior coordination or asking for permission.",
+    "timestamp": "2025-05-17T16:32:31.739Z"
+  }
+]
