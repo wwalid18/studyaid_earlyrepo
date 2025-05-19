@@ -19,8 +19,10 @@ def create_app():
         from app.routes.highlight import highlight_bp
         from app.routes.collection import collection_bp
         from app.routes.summary import summary_bp
+        from app.routes.quiz import quiz_bp
         app.register_blueprint(highlight_bp, url_prefix='/api')
         app.register_blueprint(collection_bp, url_prefix='/api')
         app.register_blueprint(summary_bp, url_prefix='/api')
+        app.register_blueprint(quiz_bp, url_prefix='/api')
 
     return app
