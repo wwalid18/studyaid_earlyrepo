@@ -32,6 +32,23 @@ class SummaryFacade:
         return summary
 
     @staticmethod
+    def update_summary(summary_id, data):
+        summary = Summary.query.get_or_404(summary_id)
+        summary.summary_text = data.get('summary_text', summary.summary_text)
+        if 'highlight_ids' in data:
+            summary.highlight_ids = data['highlight_ids']
+        summary.updated_at = datetime.utcnow()
+        db.session.commit()
+        return summary
+
+    @staticmethod
+    def delete_summary(summary_id):
+        summary = Summary.query.get_or_404(summary_id)
+        db.session.delete(summary)
+        db.session.commit()
+        return True
+
+    @staticmethod
     def get_all_summaries():
         return Summary.query.all()
 

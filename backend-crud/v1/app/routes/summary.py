@@ -35,6 +35,26 @@ def get_summary(summary_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 404
 
+@summary_bp.route('/summaries/<summary_id>', methods=['PUT'])
+def update_summary(summary_id):
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+
+    try:
+        summary = SummaryFacade.update_summary(summary_id, data)
+        return jsonify(summary_schema.dump(summary)), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 404
+
+@summary_bp.route('/summaries/<summary_id>', methods=['DELETE'])
+def delete_summary(summary_id):
+    try:
+        SummaryFacade.delete_summary(summary_id)
+        return jsonify({'message': f'Summary {summary_id} deleted successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 404
+
 @summary_bp.route('/collections/<collection_id>/summaries', methods=['GET'])
 def get_summaries_by_collection(collection_id):
     try:
