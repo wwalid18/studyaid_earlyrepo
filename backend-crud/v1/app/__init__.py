@@ -18,7 +18,9 @@ def create_app():
     with app.app_context():
         from app.routes.highlight import highlight_bp
         from app.routes.collection import collection_bp
+        from app.routes.summary import summary_bp
         app.register_blueprint(highlight_bp, url_prefix='/api')
         app.register_blueprint(collection_bp, url_prefix='/api')
+        app.register_blueprint(summary_bp, url_prefix='/api')
 
     return app

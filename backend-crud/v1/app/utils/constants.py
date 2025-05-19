@@ -1,0 +1,1 @@
+STATIC_SUMMARY_TEXT = "This is a static summary of the selected highlights from the collection."
