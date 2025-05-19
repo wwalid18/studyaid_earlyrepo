@@ -217,7 +217,11 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .then(data => {
         console.log('Highlights exported successfully:', data);
-        alert('Highlights exported to backend!');
+        // Clear highlights after successful export
+        chrome.storage.local.set({ highlights: [] }, () => {
+          renderHighlights(); // Re-render to show empty list
+          alert('Highlights exported to backend!');
+        });
       })
       .catch(error => {
         console.error('Error exporting highlights:', error.message);
