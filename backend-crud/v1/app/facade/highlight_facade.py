@@ -7,9 +7,9 @@ class HighlightFacade:
     def save_highlights(highlight_data_list):
         highlights = []
         for data in highlight_data_list:
-            # Convert timestamp string to datetime object
             timestamp = datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00'))
-            highlight = Highlight(url=data['url'], text=data['text'], timestamp=timestamp)
+            collection_id = data.get('collection_id')
+            highlight = Highlight(url=data['url'], text=data['text'], timestamp=timestamp, collection_id=collection_id)
             highlights.append(highlight)
         db.session.bulk_save_objects(highlights)
         db.session.commit()
@@ -30,6 +30,8 @@ class HighlightFacade:
         highlight.text = data.get('text', highlight.text)
         if 'timestamp' in data:
             highlight.timestamp = datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00'))
+        if 'collection_id' in data:
+            highlight.collection_id = data['collection_id']
         db.session.commit()
         return highlight
 

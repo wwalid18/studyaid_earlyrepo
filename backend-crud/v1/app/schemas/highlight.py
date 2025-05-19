@@ -6,6 +6,7 @@ class HighlightSchema(Schema):
     text = fields.Str(required=True)
     timestamp = fields.DateTime(required=True, format='%Y-%m-%dT%H:%M:%S')
     updated_at = fields.DateTime(dump_only=True, format='%Y-%m-%dT%H:%M:%S')
+    collection_id = fields.Str(required=False)
 
 highlight_schema = HighlightSchema()
 highlights_schema = HighlightSchema(many=True)
