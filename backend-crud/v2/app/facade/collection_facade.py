@@ -2,6 +2,7 @@ from app.models.collection import Collection
 from app.models.highlight import Highlight
 from app.utils.db import db
 from datetime import datetime
+from sqlalchemy import and_
 
 class CollectionFacade:
     @staticmethod
@@ -9,15 +10,20 @@ class CollectionFacade:
         collections = []
         for data in collection_data_list:
             timestamp = datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00'))
-            collection = Collection(title=data['title'], description=data.get('description'), timestamp=timestamp)
+            collection = Collection(
+                title=data['title'],
+                description=data.get('description'),
+                timestamp=timestamp,
+                user_id=data['user_id']
+            )
             collections.append(collection)
-        db.session.bulk_save_objects(collections)
+        db.session.add_all(collections)
         db.session.commit()
         return collections
 
     @staticmethod
-    def get_all_collections():
-        return Collection.query.all()
+    def get_user_collections(user_id):
+        return Collection.query.filter_by(user_id=user_id).all()
 
     @staticmethod
     def get_collection_by_id(collection_id):
@@ -47,13 +53,27 @@ class CollectionFacade:
     def add_highlight_to_collection(collection_id, highlight_id):
         collection = Collection.query.get_or_404(collection_id)
         highlight = Highlight.query.get_or_404(highlight_id)
-        if highlight.collection_id is None:  # Avoid reassignment if already linked
-            highlight.collection_id = collection_id
-            db.session.commit()
-            collection.highlights_count = len(collection.highlights)  # Update highlights count
+        
+        # Verify that both collection and highlight belong to the same user
+        if collection.user_id != highlight.user_id:
+            raise ValueError("Cannot add highlight from a different user")
+            
+        highlight.collection_id = collection_id
+        db.session.commit()
+        collection.highlights_count = len(collection.highlights)  # Update highlights count
         return collection
 
     @staticmethod
     def get_highlights_by_collection(collection_id):
         collection = Collection.query.get_or_404(collection_id)
         return collection.highlights
+
+    @staticmethod
+    def get_collections_by_user_and_highlight(user_id, highlight_id):
+        """Get all collections that belong to a user and contain a specific highlight"""
+        return Collection.query.join(Highlight).filter(
+            and_(
+                Collection.user_id == user_id,
+                Highlight.id == highlight_id
+            )
+        ).all()

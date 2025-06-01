@@ -15,6 +15,8 @@ class UserBaseSchema(ma.SQLAlchemyAutoSchema):
         sqla_session = db.session
         exclude = ('password_hash',)
 
+    highlights = fields.Nested('HighlightSchema', many=True, exclude=('user',))
+
 class UserRegisterSchema(UserBaseSchema):
     password = fields.Str(required=True, validate=validate.Length(min=6), load_only=True)
 

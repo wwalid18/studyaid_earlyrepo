@@ -1,42 +1,51 @@
 from app.models.summary import Summary
 from app.models.collection import Collection
+from app.models.highlight import Highlight
 from app.utils.db import db
 from datetime import datetime
 from app.utils.constants import STATIC_SUMMARY_TEXT
 
 class SummaryFacade:
     @staticmethod
-    def save_summary(collection_id, highlight_ids, summary_text=None):
-        # Check if a summary with the same highlight_ids already exists for this collection
-        existing_summary = Summary.query.filter_by(
-            collection_id=collection_id,
-            highlight_ids=highlight_ids
-        ).first()
-        if existing_summary:
-            return existing_summary
+    def save_summary(data):
+        collection_id = data['collection_id']
+        highlight_ids = data['highlight_ids']
+        user_id = data['user_id']
+        content = data.get('content', STATIC_SUMMARY_TEXT)
+        timestamp = data.get('timestamp', datetime.utcnow())
 
-        # Use provided summary_text or fall back to static summary
-        summary_text = summary_text or STATIC_SUMMARY_TEXT
+        # Check if a summary with the same highlights already exists for this collection
+        if not Summary.can_generate_summary(collection_id, highlight_ids):
+            raise ValueError("A summary with these highlights already exists for this collection")
 
-        # Verify all highlight_ids are valid (optional, can be expanded later)
-        collection = Collection.query.get_or_404(collection_id)
-        timestamp = datetime.utcnow()
+        # Create the summary
         summary = Summary(
             collection_id=collection_id,
-            highlight_ids=highlight_ids,
-            summary_text=summary_text,
+            user_id=user_id,
+            content=content,
             timestamp=timestamp
         )
         db.session.add(summary)
+
+        # Add highlights to the summary
+        highlights = Highlight.query.filter(Highlight.id.in_(highlight_ids)).all()
+        summary.highlights = highlights
+
         db.session.commit()
         return summary
 
     @staticmethod
     def update_summary(summary_id, data):
         summary = Summary.query.get_or_404(summary_id)
-        summary.summary_text = data.get('summary_text', summary.summary_text)
+        
+        if 'content' in data:
+            summary.content = data['content']
+        if 'timestamp' in data:
+            summary.timestamp = data['timestamp']
         if 'highlight_ids' in data:
-            summary.highlight_ids = data['highlight_ids']
+            highlights = Highlight.query.filter(Highlight.id.in_(data['highlight_ids'])).all()
+            summary.highlights = highlights
+
         summary.updated_at = datetime.utcnow()
         db.session.commit()
         return summary
@@ -49,8 +58,8 @@ class SummaryFacade:
         return True
 
     @staticmethod
-    def get_all_summaries():
-        return Summary.query.all()
+    def get_user_summaries(user_id):
+        return Summary.query.filter_by(user_id=user_id).all()
 
     @staticmethod
     def get_summary_by_id(summary_id):
@@ -58,5 +67,4 @@ class SummaryFacade:
 
     @staticmethod
     def get_summaries_by_collection(collection_id):
-        collection = Collection.query.get_or_404(collection_id)
-        return collection.summaries
+        return Summary.query.filter_by(collection_id=collection_id).all()

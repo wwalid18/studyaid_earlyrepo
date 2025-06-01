@@ -1,20 +1,44 @@
 STATIC_SUMMARY_TEXT = "This is a static summary of the selected highlights from the collection."
 
-STATIC_QUIZ_TEXT = [
+STATIC_QUIZ_QUESTIONS = [
     {
         "question": "What is the Pythagorean theorem?",
-        "answer": "The Pythagorean theorem states that in a right triangle, the square of the hypotenuse (the side opposite the right angle) is equal to the sum of the squares of the other two sides (a² + b² = c²)."
+        "options": [
+            "a² + b² = c²",
+            "a + b = c",
+            "a² - b² = c²",
+            "a × b = c"
+        ],
+        "correct_answer": 0
     },
     {
-        "question": "Explain the quadratic formula.",
-        "answer": "The quadratic formula is used to solve equations of the form ax² + bx + c = 0, where x = [-b ± √(b² - 4ac)] / 2a."
+        "question": "What is the quadratic formula?",
+        "options": [
+            "x = [-b ± √(b² - 4ac)] / 2a",
+            "x = b ± √(b² - 4ac)",
+            "x = [-b ± √(b² + 4ac)] / 2a",
+            "x = b ± √(b² + 4ac)"
+        ],
+        "correct_answer": 0
     },
     {
         "question": "What is the value of π (pi) to two decimal places?",
-        "answer": "The value of π (pi) to two decimal places is 3.14."
+        "options": [
+            "3.14",
+            "3.16",
+            "3.12",
+            "3.18"
+        ],
+        "correct_answer": 0
     },
     {
         "question": "What is the derivative of x²?",
-        "answer": "The derivative of x² is 2x."
+        "options": [
+            "2x",
+            "x²",
+            "2",
+            "x"
+        ],
+        "correct_answer": 0
     }
 ]

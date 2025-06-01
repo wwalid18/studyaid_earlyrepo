@@ -1,11 +1,27 @@
-from marshmallow import Schema, fields, validate
+from flask_marshmallow import Marshmallow
+from marshmallow import fields, validate
+from app.models.quiz import Quiz
+from app.utils.db import db
+from app.schemas.summary import summary_schema
 
-class QuizSchema(Schema):
-    id = fields.Str(dump_only=True)
+ma = Marshmallow()
+
+class QuizSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = Quiz
+        load_instance = True
+        include_fk = True
+        exclude = ('updated_at',)
+
+    summary = fields.Nested(summary_schema, dump_only=True, exclude=('collection',))
+    user = fields.Nested('UserSchema', dump_only=True, exclude=('quizzes', 'summaries', 'highlights', 'collections'))
+
+class QuizCreateSchema(ma.Schema):
     summary_id = fields.Str(required=True, validate=validate.Length(equal=36))
-    quiz_text = fields.Str(required=True)
+    title = fields.Str(required=True)
+    questions = fields.List(fields.Dict(), required=True)
     timestamp = fields.DateTime(required=True, format='%Y-%m-%dT%H:%M:%S')
-    updated_at = fields.DateTime(dump_only=True, format='%Y-%m-%dT%H:%M:%S')
 
 quiz_schema = QuizSchema()
 quizzes_schema = QuizSchema(many=True)
+quiz_create_schema = QuizCreateSchema()

@@ -22,17 +22,20 @@ def create_app():
 
     # Import routes after app initialization to avoid circular imports
     with app.app_context():
+        print("Importing routes...")
         from app.routes.highlight import highlight_bp
         from app.routes.collection import collection_bp
         from app.routes.summary import summary_bp
         from app.routes.quiz import quiz_bp
         from app.routes.auth import auth_bp
         from app.routes.user import user_bp
+        print("Registering blueprints...")
         app.register_blueprint(highlight_bp, url_prefix='/api')
         app.register_blueprint(collection_bp, url_prefix='/api')
         app.register_blueprint(summary_bp, url_prefix='/api')
         app.register_blueprint(quiz_bp, url_prefix='/api')
         app.register_blueprint(auth_bp, url_prefix='/api/auth')
         app.register_blueprint(user_bp, url_prefix='/api')
+        print("Blueprints registered successfully.")
 
     return app
