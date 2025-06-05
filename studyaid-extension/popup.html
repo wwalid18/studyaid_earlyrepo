@@ -119,16 +119,166 @@
       display: block !important;
       overflow: visible !important;
     }
+    
+    /* Auth Styles */
+    .auth-container {
+      padding: 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-bottom: 15px;
+    }
+    
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .auth-form input {
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    
+    .auth-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    
+    .auth-button {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    
+    .login-button {
+      background: #007bff;
+      color: white;
+    }
+    
+    .register-button {
+      background: #28a745;
+      color: white;
+    }
+    
+    .auth-button:hover {
+      opacity: 0.9;
+    }
+    
+    .user-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px;
+      background: #e9ecef;
+      border-radius: 4px;
+      margin-bottom: 15px;
+    }
+    
+    .logout-button {
+      background: #dc3545;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    
+    .hidden {
+      display: none !important;
+    }
+    
+    .reset-password-section {
+      text-align: center;
+      margin-top: 10px;
+    }
+    
+    .reset-link {
+      background: none;
+      border: none;
+      color: #007bff;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 0;
+      font-size: 14px;
+    }
+    
+    .reset-link:hover {
+      color: #0056b3;
+    }
+    
+    #reset-password-form {
+      margin-top: 10px;
+    }
+    
+    #reset-request-section,
+    #reset-confirm-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
   </style>
 </head>
 <body>
   <h2>Text Highlighter</h2>
-  <div class="current-selection">
-    <button id="save-highlight" disabled>Save Highlight</button>
-    <p id="selected-text">No text selected.</p>
+  
+  <!-- Auth Container -->
+  <div id="auth-container" class="auth-container">
+    <div id="login-form" class="auth-form">
+      <input type="email" id="login-email" placeholder="Email" required>
+      <input type="password" id="login-password" placeholder="Password" required>
+      <div class="auth-buttons">
+        <button id="login-button" class="auth-button login-button">Login</button>
+        <button id="show-register" class="auth-button register-button">Register</button>
+      </div>
+      <div class="reset-password-section">
+        <button id="show-reset-password" class="reset-link">Forgot Password?</button>
+      </div>
+    </div>
+    
+    <div id="reset-password-form" class="auth-form hidden">
+      <div id="reset-request-section">
+        <input type="email" id="reset-email" placeholder="Enter your email" required>
+        <button id="request-reset-token" class="auth-button login-button">Request Reset Link</button>
+      </div>
+      <div id="reset-confirm-section" class="hidden">
+        <input type="password" id="new-password" placeholder="Enter new password" required>
+        <input type="password" id="confirm-password" placeholder="Confirm new password" required>
+        <button id="reset-password-button" class="auth-button login-button">Reset Password</button>
+      </div>
+      <button id="back-to-login" class="auth-button register-button">Back to Login</button>
+    </div>
+    
+    <div id="register-form" class="auth-form hidden">
+      <input type="text" id="register-username" placeholder="Username" required>
+      <input type="email" id="register-email" placeholder="Email" required>
+      <input type="password" id="register-password" placeholder="Password" required>
+      <div class="auth-buttons">
+        <button id="register-button" class="auth-button register-button">Register</button>
+        <button id="show-login" class="auth-button login-button">Back to Login</button>
+      </div>
+    </div>
   </div>
-  <h3>Saved Highlights</h3>
-  <div id="highlights-list"></div>
+  
+  <!-- User Info -->
+  <div id="user-info" class="user-info hidden">
+    <span id="user-email"></span>
+    <button id="logout-button" class="logout-button">Logout</button>
+  </div>
+  
+  <!-- Main Content -->
+  <div id="main-content" class="hidden">
+    <div class="current-selection">
+      <button id="save-highlight" disabled>Save Highlight</button>
+      <p id="selected-text">No text selected.</p>
+    </div>
+    <h3>Saved Highlights</h3>
+    <div id="highlights-list"></div>
+  </div>
+  
   <script src="popup.js"></script>
 </body>
 </html>

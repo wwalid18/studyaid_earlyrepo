@@ -1,4 +1,29 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // Auth Elements
+  const authContainer = document.getElementById('auth-container');
+  const loginForm = document.getElementById('login-form');
+  const registerForm = document.getElementById('register-form');
+  const userInfo = document.getElementById('user-info');
+  const mainContent = document.getElementById('main-content');
+  const userEmail = document.getElementById('user-email');
+  
+  // Login Elements
+  const loginEmail = document.getElementById('login-email');
+  const loginPassword = document.getElementById('login-password');
+  const loginButton = document.getElementById('login-button');
+  const showRegister = document.getElementById('show-register');
+  
+  // Register Elements
+  const registerUsername = document.getElementById('register-username');
+  const registerEmail = document.getElementById('register-email');
+  const registerPassword = document.getElementById('register-password');
+  const registerButton = document.getElementById('register-button');
+  const showLogin = document.getElementById('show-login');
+  
+  // Logout Button
+  const logoutButton = document.getElementById('logout-button');
+  
+  // Main Content Elements
   const selectedTextEl = document.getElementById('selected-text');
   const saveButton = document.getElementById('save-highlight');
   const highlightsList = document.getElementById('highlights-list');
@@ -15,6 +40,223 @@ document.addEventListener('DOMContentLoaded', () => {
   exportButton.addEventListener('click', exportHighlights);
   document.querySelector('.current-selection').insertBefore(exportButton, saveButton);
 
+  // Reset Password Elements
+  const resetPasswordForm = document.getElementById('reset-password-form');
+  const resetRequestSection = document.getElementById('reset-request-section');
+  const resetConfirmSection = document.getElementById('reset-confirm-section');
+  const resetEmail = document.getElementById('reset-email');
+  const newPassword = document.getElementById('new-password');
+  const confirmPassword = document.getElementById('confirm-password');
+  const requestResetToken = document.getElementById('request-reset-token');
+  const resetPasswordButton = document.getElementById('reset-password-button');
+  const showResetPassword = document.getElementById('show-reset-password');
+  const backToLogin = document.getElementById('back-to-login');
+  
+  // Check authentication status on load
+  checkAuthStatus();
+  
+  // Auth Functions
+  async function checkAuthStatus() {
+    const token = await chrome.storage.local.get('auth_token');
+    if (token.auth_token) {
+      showAuthenticatedUI();
+    } else {
+      showUnauthenticatedUI();
+    }
+  }
+  
+  function showAuthenticatedUI() {
+    authContainer.classList.add('hidden');
+    userInfo.classList.remove('hidden');
+    mainContent.classList.remove('hidden');
+    const user = chrome.storage.local.get('user');
+    userEmail.textContent = user.email;
+  }
+  
+  function showUnauthenticatedUI() {
+    authContainer.classList.remove('hidden');
+    userInfo.classList.add('hidden');
+    mainContent.classList.add('hidden');
+  }
+  
+  // Login/Register Form Toggle
+  showRegister.addEventListener('click', () => {
+    loginForm.classList.add('hidden');
+    registerForm.classList.remove('hidden');
+  });
+  
+  showLogin.addEventListener('click', () => {
+    registerForm.classList.add('hidden');
+    loginForm.classList.remove('hidden');
+  });
+  
+  // Reset Password Form Toggle
+  showResetPassword.addEventListener('click', () => {
+    loginForm.classList.add('hidden');
+    registerForm.classList.add('hidden');
+    resetPasswordForm.classList.remove('hidden');
+    resetRequestSection.classList.remove('hidden');
+    resetConfirmSection.classList.add('hidden');
+  });
+  
+  backToLogin.addEventListener('click', () => {
+    resetPasswordForm.classList.add('hidden');
+    loginForm.classList.remove('hidden');
+    resetRequestSection.classList.remove('hidden');
+    resetConfirmSection.classList.add('hidden');
+    resetEmail.value = '';
+    newPassword.value = '';
+    confirmPassword.value = '';
+  });
+  
+  // Login Handler
+  loginButton.addEventListener('click', async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: loginEmail.value,
+          password: loginPassword.value
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        await chrome.storage.local.set({
+          auth_token: data.access_token,
+          user: data.user
+        });
+        showAuthenticatedUI();
+        loginEmail.value = '';
+        loginPassword.value = '';
+      } else {
+        alert(data.error || 'Login failed');
+      }
+    } catch (error) {
+      alert('Login failed: ' + error.message);
+    }
+  });
+  
+  // Register Handler
+  registerButton.addEventListener('click', async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: registerUsername.value,
+          email: registerEmail.value,
+          password: registerPassword.value
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        alert('Registration successful! Please login.');
+        registerForm.classList.add('hidden');
+        loginForm.classList.remove('hidden');
+        registerUsername.value = '';
+        registerEmail.value = '';
+        registerPassword.value = '';
+      } else {
+        alert(data.error || 'Registration failed');
+      }
+    } catch (error) {
+      alert('Registration failed: ' + error.message);
+    }
+  });
+  
+  // Logout Handler
+  logoutButton.addEventListener('click', async () => {
+    await chrome.storage.local.remove(['auth_token', 'user']);
+    showUnauthenticatedUI();
+  });
+  
+  // Request Reset Token
+  requestResetToken.addEventListener('click', async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/reset-password-request', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: resetEmail.value
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        // Store the reset token temporarily
+        await chrome.storage.local.set({ reset_token: data.token });
+        // Show the password reset form
+        resetRequestSection.classList.add('hidden');
+        resetConfirmSection.classList.remove('hidden');
+        alert('Reset token sent! Please enter your new password.');
+      } else {
+        alert(data.error || 'Failed to request reset token');
+      }
+    } catch (error) {
+      alert('Failed to request reset token: ' + error.message);
+    }
+  });
+  
+  // Reset Password
+  resetPasswordButton.addEventListener('click', async () => {
+    if (newPassword.value !== confirmPassword.value) {
+      alert('Passwords do not match!');
+      return;
+    }
+    
+    try {
+      const { reset_token } = await chrome.storage.local.get('reset_token');
+      
+      if (!reset_token) {
+        alert('Reset token not found. Please request a new reset token.');
+        return;
+      }
+      
+      const response = await fetch('http://localhost:5000/api/auth/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token: reset_token,
+          new_password: newPassword.value
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok) {
+        // Clear the reset token
+        await chrome.storage.local.remove('reset_token');
+        // Show success message and return to login
+        alert('Password reset successful! Please login with your new password.');
+        resetPasswordForm.classList.add('hidden');
+        loginForm.classList.remove('hidden');
+        resetRequestSection.classList.remove('hidden');
+        resetConfirmSection.classList.add('hidden');
+        resetEmail.value = '';
+        newPassword.value = '';
+        confirmPassword.value = '';
+      } else {
+        alert(data.error || 'Failed to reset password');
+      }
+    } catch (error) {
+      alert('Failed to reset password: ' + error.message);
+    }
+  });
+  
   function getSelection() {
     return new Promise((resolve) => {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -53,7 +295,13 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Popup received selection:', selectedText);
   }
 
-  saveButton.addEventListener('click', () => {
+  saveButton.addEventListener('click', async () => {
+    const { auth_token } = await chrome.storage.local.get('auth_token');
+    if (!auth_token) {
+      alert('Please login to save highlights');
+      return;
+    }
+    
     getSelection().then((text) => {
       if (text) {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -187,6 +435,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   async function exportHighlights() {
+    const { auth_token } = await chrome.storage.local.get('auth_token');
+    if (!auth_token) {
+      alert('Please login to export highlights');
+      return;
+    }
+    
     chrome.storage.local.get(['highlights'], (result) => {
       const highlights = result.highlights || [];
       if (highlights.length === 0) {
@@ -206,6 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${auth_token}`
         },
         body: JSON.stringify(dataToSend)
       })
@@ -217,9 +472,8 @@ document.addEventListener('DOMContentLoaded', () => {
       })
       .then(data => {
         console.log('Highlights exported successfully:', data);
-        // Clear highlights after successful export
         chrome.storage.local.set({ highlights: [] }, () => {
-          renderHighlights(); // Re-render to show empty list
+          renderHighlights();
           alert('Highlights exported to backend!');
         });
       })
