@@ -40,6 +40,25 @@ def get_all_highlights():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@highlight_bp.route('/highlights/user/<user_id>', methods=['GET'])
+@jwt_required()
+def get_highlights_by_user_id(user_id):
+    current_user_id = get_jwt_identity()
+    try:
+        # Check if the requesting user has access to the target user's highlights
+        # This could be through collaboration or other access control mechanisms
+        target_user = User.query.get_or_404(user_id)
+        
+        # For now, we'll only allow users to view their own highlights
+        # You can modify this logic based on your access control requirements
+        if current_user_id != user_id:
+            return jsonify({'error': 'Unauthorized access'}), 403
+            
+        highlights = HighlightFacade.get_user_highlights(user_id)
+        return jsonify(highlights_schema.dump(highlights)), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @highlight_bp.route('/highlights/<highlight_id>', methods=['GET'])
 @jwt_required()
 def get_highlight(highlight_id):
