@@ -14,7 +14,7 @@ class User(BaseModel):
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128))
+    password_hash = db.Column(db.String(255))
     is_admin = db.Column(db.Boolean, default=False)
     admin_granted_by = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=True)
     admin_granted_at = db.Column(db.DateTime, nullable=True)
