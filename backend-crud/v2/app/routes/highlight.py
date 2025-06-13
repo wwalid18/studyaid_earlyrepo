@@ -9,24 +9,21 @@ highlight_bp = Blueprint('highlight', __name__)
 
 @highlight_bp.route('/highlights', methods=['POST'])
 @jwt_required()
-def create_highlights():
+def create_highlight():
     current_user_id = get_jwt_identity()
     data = request.get_json()
-    if not isinstance(data, list):
-        return jsonify({'error': 'Data must be an array'}), 400
-
+    
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+        
+    data['user_id'] = current_user_id
+    
     try:
-        # Add user_id to each highlight
-        for highlight_data in data:
-            highlight_data['user_id'] = current_user_id
-            # Verify collection access if collection_id is provided
-            if highlight_data.get('collection_id'):
-                collection = Collection.query.get(highlight_data['collection_id'])
-                if not collection or not collection.can_access(User.query.get(current_user_id)):
-                    return jsonify({'error': 'Invalid collection or unauthorized access'}), 403
-
-        highlights = HighlightFacade.save_highlights(data)
-        return jsonify(highlights_schema.dump(highlights)), 201
+        highlight = HighlightFacade.save_highlight(data)
+        return jsonify({
+            'message': 'Highlight created successfully',
+            'highlight': highlight_schema.dump(highlight)
+        }), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -36,7 +33,10 @@ def get_all_highlights():
     current_user_id = get_jwt_identity()
     try:
         highlights = HighlightFacade.get_user_highlights(current_user_id)
-        return jsonify(highlights_schema.dump(highlights)), 200
+        return jsonify({
+            'highlights': highlights_schema.dump(highlights),
+            'total': len(highlights)
+        }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -47,7 +47,7 @@ def get_highlights_by_user_id(user_id):
     try:
         # Check if the requesting user has access to the target user's highlights
         # This could be through collaboration or other access control mechanisms
-        target_user = User.query.get_or_404(user_id)
+        target_user = User.query.get_or_404(user_id)    
         
         # For now, we'll only allow users to view their own highlights
         # You can modify this logic based on your access control requirements
@@ -65,9 +65,11 @@ def get_highlight(highlight_id):
     current_user_id = get_jwt_identity()
     try:
         highlight = HighlightFacade.get_highlight_by_id(highlight_id)
-        if highlight.user_id != current_user_id:
+        if not highlight.can_access(User.query.get(current_user_id)):
             return jsonify({'error': 'Unauthorized access'}), 403
-        return jsonify(highlight_schema.dump(highlight)), 200
+        return jsonify({
+            'highlight': highlight_schema.dump(highlight)
+        }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 404
 
@@ -76,22 +78,20 @@ def get_highlight(highlight_id):
 def update_highlight(highlight_id):
     current_user_id = get_jwt_identity()
     data = request.get_json()
+    
     if not data:
         return jsonify({'error': 'No data provided'}), 400
-
+        
     try:
         highlight = HighlightFacade.get_highlight_by_id(highlight_id)
-        if highlight.user_id != current_user_id:
+        if not highlight.can_modify(User.query.get(current_user_id)):
             return jsonify({'error': 'Unauthorized access'}), 403
-
-        # Verify collection access if collection_id is being updated
-        if 'collection_id' in data and data['collection_id']:
-            collection = Collection.query.get(data['collection_id'])
-            if not collection or not collection.can_access(User.query.get(current_user_id)):
-                return jsonify({'error': 'Invalid collection or unauthorized access'}), 403
-
+            
         highlight = HighlightFacade.update_highlight(highlight_id, data)
-        return jsonify(highlight_schema.dump(highlight)), 200
+        return jsonify({
+            'message': 'Highlight updated successfully',
+            'highlight': highlight_schema.dump(highlight)
+        }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
@@ -101,10 +101,12 @@ def delete_highlight(highlight_id):
     current_user_id = get_jwt_identity()
     try:
         highlight = HighlightFacade.get_highlight_by_id(highlight_id)
-        if highlight.user_id != current_user_id:
+        if not highlight.can_modify(User.query.get(current_user_id)):
             return jsonify({'error': 'Unauthorized access'}), 403
-
+            
         HighlightFacade.delete_highlight(highlight_id)
-        return jsonify({'message': f'Highlight {highlight_id} deleted successfully'}), 200
+        return jsonify({
+            'message': f'Highlight {highlight_id} deleted successfully'
+        }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500

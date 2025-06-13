@@ -8,6 +8,10 @@ ma = Marshmallow()
 class UserBaseSchema(ma.SQLAlchemyAutoSchema):
     username = fields.Str(required=True, validate=validate.Length(min=3, max=50))
     email = fields.Email(required=True)
+    is_admin = fields.Bool(dump_only=True)
+    admin_granted_by = fields.Str(dump_only=True)
+    admin_granted_at = fields.DateTime(dump_only=True)
+    admin_grant_reason = fields.Str(dump_only=True)
 
     class Meta:
         model = User
@@ -16,6 +20,8 @@ class UserBaseSchema(ma.SQLAlchemyAutoSchema):
         exclude = ('password_hash',)
 
     highlights = fields.Nested('HighlightSchema', many=True, exclude=('user',))
+    admin_grantor = fields.Nested('self', exclude=('admin_grantor', 'admin_granted_users'), dump_only=True)
+    admin_granted_users = fields.Nested('self', exclude=('admin_grantor', 'admin_granted_users'), many=True, dump_only=True)
 
 class UserRegisterSchema(UserBaseSchema):
     password = fields.Str(required=True, validate=validate.Length(min=6), load_only=True)

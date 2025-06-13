@@ -1,5 +1,6 @@
 from app.models.collection import Collection
 from app.models.highlight import Highlight
+from app.models.user import User
 from app.utils.db import db
 from datetime import datetime
 from sqlalchemy import and_
@@ -9,7 +10,12 @@ class CollectionFacade:
     def save_collections(collection_data_list):
         collections = []
         for data in collection_data_list:
-            timestamp = datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00'))
+            # Use current time if timestamp is not provided
+            if 'timestamp' in data:
+                timestamp = datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00'))
+            else:
+                timestamp = datetime.utcnow()
+                
             collection = Collection(
                 title=data['title'],
                 description=data.get('description'),
@@ -77,3 +83,38 @@ class CollectionFacade:
                 Highlight.id == highlight_id
             )
         ).all()
+
+    @staticmethod
+    def add_highlights_to_collection(collection_id, highlight_ids, current_user_id):
+        collection = Collection.query.get_or_404(collection_id)
+        highlights = []
+        existing_highlight_ids = {h.id for h in collection.highlights}
+        
+        for highlight_id in highlight_ids:
+            try:
+                highlight = Highlight.query.get_or_404(highlight_id)
+                
+                # Check if highlight is already in collection
+                if highlight.id in existing_highlight_ids:
+                    raise ValueError(f"Highlight {highlight_id} is already in the collection")
+                
+                # Verify that the current user owns the highlight or has access to it
+                if highlight.user_id != current_user_id:
+                    raise ValueError(f"Highlight {highlight_id} does not belong to you")
+                
+                # Verify that the highlight belongs to the collection owner or collaborators
+                if highlight.user_id != collection.user_id and not collection.is_collaborator(User.query.get(highlight.user_id)):
+                    raise ValueError(f"Highlight {highlight_id} does not belong to the collection owner or collaborators")
+                    
+                highlight.collection_id = collection_id
+                highlights.append(highlight)
+                existing_highlight_ids.add(highlight.id)  # Add to set to prevent duplicates
+                
+            except ValueError as e:
+                # Rollback any changes if there's an error
+                db.session.rollback()
+                raise e
+                
+        db.session.commit()
+        collection.highlights_count = len(collection.highlights)  # Update highlights count
+        return highlights
