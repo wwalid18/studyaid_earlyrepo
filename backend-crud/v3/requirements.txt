@@ -1,0 +1,15 @@
+Flask==2.3.2
+Flask-SQLAlchemy==3.0.5
+Flask-Migrate==4.0.7
+Flask-CORS==4.0.0
+Flask-JWT-Extended==4.5.2
+Flask-Marshmallow==0.15.0
+marshmallow==3.21.1
+mysql-connector-python==8.0.33
+argon2-cffi==21.3.0
+Werkzeug==2.3.6
+marshmallow-sqlalchemy
+python-dotenv==1.0.0
+
+# AI Dependencies (Optional - requires Python 3.11 or 3.12)
+# google-generativeai==0.3.2  # Uncomment if using Python 3.11/3.12
