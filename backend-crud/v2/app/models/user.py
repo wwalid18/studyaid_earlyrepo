@@ -24,7 +24,7 @@ class User(BaseModel):
     # Relationships
     highlights = db.relationship('Highlight', back_populates='user', lazy='dynamic')
     summaries = db.relationship('Summary', back_populates='user', lazy='dynamic')
-    quizzes = db.relationship('Quiz', back_populates='user', lazy='dynamic')
+    quiz_attempts = db.relationship('QuizAttempt', back_populates='user', lazy='dynamic')
 
     # Add relationship for admin tracking
     admin_granted_users = db.relationship('User', 

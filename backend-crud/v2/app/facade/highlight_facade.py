@@ -85,3 +85,19 @@ class HighlightFacade:
         highlight.collection_id = collection_id
         db.session.commit()
         return highlight
+
+    @staticmethod
+    def save_highlight(data):
+        """Save a single highlight"""
+        timestamp = datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00'))
+        collection_id = data.get('collection_id')
+        highlight = Highlight(
+            url=data['url'],
+            text=data['text'],
+            timestamp=timestamp,
+            collection_id=collection_id,
+            user_id=data['user_id']
+        )
+        db.session.add(highlight)
+        db.session.commit()
+        return highlight

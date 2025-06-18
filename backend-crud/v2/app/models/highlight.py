@@ -17,3 +17,13 @@ class Highlight(BaseModel):
 
     def __repr__(self):
         return f"<Highlight {self.id} - {self.url}>"
+
+    def can_access(self, user):
+        """Check if a user can access this highlight"""
+        return (self.user_id == user.id or 
+                (self.collection and self.collection.can_access(user)) or 
+                user.is_admin)
+
+    def can_modify(self, user):
+        """Check if a user can modify this highlight"""
+        return (self.user_id == user.id or user.is_admin)

@@ -11,10 +11,9 @@ class QuizSchema(ma.SQLAlchemyAutoSchema):
         model = Quiz
         load_instance = True
         include_fk = True
-        exclude = ('updated_at',)
+        exclude = ('updated_at', 'attempts')
 
-    summary = fields.Nested(summary_schema, dump_only=True, exclude=('collection',))
-    user = fields.Nested('UserSchema', dump_only=True, exclude=('quizzes', 'summaries', 'highlights', 'collections'))
+    summary = fields.Nested(summary_schema, dump_only=True, exclude=('collection', 'quiz'))
 
 class QuizCreateSchema(ma.Schema):
     summary_id = fields.Str(required=True, validate=validate.Length(equal=36))

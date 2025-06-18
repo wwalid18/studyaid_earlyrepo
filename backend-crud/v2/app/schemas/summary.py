@@ -14,11 +14,11 @@ class SummarySchema(ma.SQLAlchemyAutoSchema):
 
     collection = fields.Nested('CollectionSchema', dump_only=True, exclude=('summaries', 'highlights'))
     highlights = fields.Nested('HighlightSchema', many=True, dump_only=True)
-    quiz = fields.Nested('QuizSchema', dump_only=True)
+    quiz = fields.Nested('QuizSchema', dump_only=True, exclude=('summary',))
 
 class SummaryCreateSchema(ma.Schema):
     collection_id = fields.Str(required=True, validate=validate.Length(equal=36))
-    highlight_ids = fields.List(fields.Str(), required=True)
+    highlight_ids = fields.List(fields.Str(), required=False, default=[])
     content = fields.Str(required=True)
     timestamp = fields.DateTime(required=True, format='%Y-%m-%dT%H:%M:%S')
 

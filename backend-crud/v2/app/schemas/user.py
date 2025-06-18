@@ -60,6 +60,7 @@ class ResetPasswordSchema(ma.Schema):
     token = fields.Str(required=True)
     new_password = fields.Str(required=True, validate=validate.Length(min=6), load_only=True)
 
+UserSchema = UserBaseSchema
 user_schema = UserBaseSchema()
 users_schema = UserBaseSchema(many=True)
 user_register_schema = UserRegisterSchema()

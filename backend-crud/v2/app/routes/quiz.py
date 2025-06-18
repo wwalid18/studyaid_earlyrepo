@@ -30,9 +30,6 @@ def create_quiz():
         if not collection or not collection.can_access(User.query.get(current_user_id)):
             return jsonify({'error': 'Unauthorized access to summary'}), 403
 
-        # Add user_id to data
-        data['user_id'] = current_user_id
-        
         quiz = QuizFacade.save_quiz(data)
         return jsonify(quiz_schema.dump(quiz)), 201
     except Exception as e:
@@ -43,7 +40,8 @@ def create_quiz():
 def get_all_quizzes():
     current_user_id = get_jwt_identity()
     try:
-        quizzes = QuizFacade.get_user_quizzes(current_user_id)
+        # Get all quizzes that the user has access to through collections
+        quizzes = QuizFacade.get_accessible_quizzes(current_user_id)
         return jsonify(quizzes_schema.dump(quizzes)), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -54,7 +52,9 @@ def get_quiz(quiz_id):
     current_user_id = get_jwt_identity()
     try:
         quiz = QuizFacade.get_quiz_by_id(quiz_id)
-        if quiz.user_id != current_user_id:
+        # Check if user has access to the quiz through the summary's collection
+        summary = Summary.query.get(quiz.summary_id)
+        if not summary or not summary.collection.can_access(User.query.get(current_user_id)):
             return jsonify({'error': 'Unauthorized access'}), 403
         return jsonify(quiz_schema.dump(quiz)), 200
     except Exception as e:
@@ -70,16 +70,18 @@ def update_quiz(quiz_id):
 
     try:
         quiz = QuizFacade.get_quiz_by_id(quiz_id)
-        if quiz.user_id != current_user_id:
+        # Check if user has access to the quiz through the summary's collection
+        summary = Summary.query.get(quiz.summary_id)
+        if not summary or not summary.collection.can_access(User.query.get(current_user_id)):
             return jsonify({'error': 'Unauthorized access'}), 403
 
         # Verify summary access if summary_id is being updated
         if 'summary_id' in data and data['summary_id']:
-            summary = Summary.query.get(data['summary_id'])
-            if not summary:
+            new_summary = Summary.query.get(data['summary_id'])
+            if not new_summary:
                 return jsonify({'error': 'Summary not found'}), 404
                 
-            collection = Collection.query.get(summary.collection_id)
+            collection = Collection.query.get(new_summary.collection_id)
             if not collection or not collection.can_access(User.query.get(current_user_id)):
                 return jsonify({'error': 'Unauthorized access to summary'}), 403
 
@@ -94,7 +96,9 @@ def delete_quiz(quiz_id):
     current_user_id = get_jwt_identity()
     try:
         quiz = QuizFacade.get_quiz_by_id(quiz_id)
-        if quiz.user_id != current_user_id:
+        # Check if user has access to the quiz through the summary's collection
+        summary = Summary.query.get(quiz.summary_id)
+        if not summary or not summary.collection.can_access(User.query.get(current_user_id)):
             return jsonify({'error': 'Unauthorized access'}), 403
 
         QuizFacade.delete_quiz(quiz_id)
