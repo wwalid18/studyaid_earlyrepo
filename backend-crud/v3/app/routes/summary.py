@@ -28,7 +28,11 @@ def create_summary():
         user = User.query.get(current_user_id)
         if not collection.can_access(user):
             return jsonify({'error': 'Unauthorized access to collection'}), 403
-        
+
+        # Fetch all highlight IDs from the collection
+        highlight_ids = [h.id for h in collection.highlights]
+        data['highlight_ids'] = highlight_ids
+
         summary = SummaryFacade.save_summary(data)
         return jsonify({
             'message': 'Summary created successfully',

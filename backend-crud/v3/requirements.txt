@@ -10,6 +10,4 @@ argon2-cffi==21.3.0
 Werkzeug==2.3.6
 marshmallow-sqlalchemy
 python-dotenv==1.0.0
-
-# AI Dependencies (Optional - requires Python 3.11 or 3.12)
-# google-generativeai==0.3.2  # Uncomment if using Python 3.11/3.12
+groq

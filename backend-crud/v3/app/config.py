@@ -9,8 +9,6 @@ class Config:
     SQLALCHEMY_DATABASE_URI = 'mysql+mysqlconnector://walid:walid@localhost/studyaid'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
-    # AI Configuration
-    GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY')
-    GEMINI_MODEL = 'gemini-1.5-flash'  # or 'gemini-1.5-pro' for more complex tasks
+    # AI Configuration (for Groq, add config here later)
     MAX_TOKENS = 2048
     TEMPERATURE = 0.7
