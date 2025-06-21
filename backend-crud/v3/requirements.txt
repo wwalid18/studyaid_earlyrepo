@@ -11,3 +11,4 @@ Werkzeug==2.3.6
 marshmallow-sqlalchemy
 python-dotenv==1.0.0
 groq
+requests
