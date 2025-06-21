@@ -2,6 +2,7 @@ import os
 import requests
 import logging
 from flask import current_app
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +13,67 @@ GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 class AIService:
     def __init__(self):
         self.ai_available = bool(GROQ_API_KEY)
+    def build_quiz_prompt(self, summary):
+        return f"""
+You are a professional quiz generator.
 
+Your task is to create a multiple-choice quiz based on the provided summary.
+
+Follow these strict rules:
+1. Generate exactly 4 unique and non-redundant questions strictly related to the summary.
+2. Each question must have only one correct answer.
+3. Each question must contain 4 distinct answer options labeled "A", "B", "C", and "D".
+4. The correct answer label ("A", "B", "C", or "D") must be randomly assigned for each question.
+5. Avoid repeating or rephrasing the same question in any way.
+6. Return only a valid JSON array in the following format — no explanations, no extra text:
+
+[
+    {{
+        "question": "First unique question?",
+        "options": {{
+            "A": "Option text",
+            "B": "Option text",
+            "C": "Option text",
+            "D": "Option text"
+        }},
+        "correct_answer": "A"
+    }},
+    {{
+        "question": "Second unique question?",
+        "options": {{
+            "A": "Option text",
+            "B": "Option text",
+            "C": "Option text",
+            "D": "Option text"
+        }},
+        "correct_answer": "C"
+    }},
+    {{
+        "question": "Third unique question?",
+        "options": {{
+            "A": "Option text",
+            "B": "Option text",
+            "C": "Option text",
+            "D": "Option text"
+        }},
+        "correct_answer": "D"
+    }},
+    {{
+        "question": "Fourth unique question?",
+        "options": {{
+            "A": "Option text",
+            "B": "Option text",
+            "C": "Option text",
+            "D": "Option text"
+        }},
+        "correct_answer": "B"
+    }}
+]
+
+==== Summary ====
+
+{summary}
+"""
     def build_prompt(self, highlights, collection_title=None):
         highlights_text = "\n- ".join([h.text if hasattr(h, 'text') else str(h) for h in highlights])
         return f'''
@@ -61,7 +122,49 @@ A well-structured summary based on the above highlights:
             return self._generate_fallback_summary(highlights, collection_title)
 
     def generate_quiz_from_summary(self, summary, num_questions=4):
-        return self._generate_fallback_quiz(summary, num_questions)
+        """
+        Generate a quiz from a summary using AI if available, otherwise fallback.
+        Returns a dict: { 'title': str, 'questions': list of dicts }
+        """
+        if not self.ai_available:
+            return self._generate_fallback_quiz(summary, num_questions)
+        prompt = self.build_quiz_prompt(summary)
+        headers = {
+            "Authorization": f"Bearer {GROQ_API_KEY}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": MODEL_NAME,
+            "messages": [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.2
+        }
+        try:
+            response = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=30)
+            if response.status_code == 200:
+                ai_content = response.json()["choices"][0]["message"]["content"].strip()
+                # Try to parse the JSON array from the AI response
+                try:
+                    questions = json.loads(ai_content)
+                    if isinstance(questions, list):
+                        return {
+                            "title": "Quiz based on the summary",
+                            "questions": questions
+                        }
+                    else:
+                        logger.error("AI quiz response is not a list")
+                        return self._generate_fallback_quiz(summary, num_questions)
+                except Exception as e:
+                    logger.error(f"Failed to parse AI quiz JSON: {e}\nAI content: {ai_content}")
+                    return self._generate_fallback_quiz(summary, num_questions)
+            else:
+                logger.error(f"Groq API error: {response.status_code} {response.text}")
+                return self._generate_fallback_quiz(summary, num_questions)
+        except Exception as e:
+            logger.error(f"Groq API exception: {e}")
+            return self._generate_fallback_quiz(summary, num_questions)
 
     def _generate_fallback_summary(self, highlights, collection_title=None):
         highlights_text = self._prepare_highlights_text(highlights)
@@ -146,3 +249,29 @@ A well-structured summary based on the above highlights:
             "ai_available": self.ai_available,
             "model": MODEL_NAME if self.ai_available else None
         } 
+    def generate_quiz(self, summary):
+        if not self.ai_available:
+            return self._generate_fallback_summary(highlights, collection_title)
+        prompt = self.build_quiz_prompt(summary)
+        headers = {
+            "Authorization": f"Bearer {GROQ_API_KEY}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": MODEL_NAME,
+            "messages": [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            "temperature": 0.2
+        }
+        try:
+            response = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=30)
+            if response.status_code == 200:
+                return response.json()["choices"][0]["message"]["content"].strip()
+            else:
+                logger.error(f"Groq API error: {response.status_code} {response.text}")
+                return self._generate_fallback_quiz(summary)
+        except Exception as e:
+            logger.error(f"Groq API exception: {e}")
+            return self._generate_fallback_quiz(summary)
