@@ -7,9 +7,18 @@ interface Highlight {
   date: string;
 }
 
+function getDomain(url: string) {
+  try {
+    return new URL(url).hostname.replace('www.', '');
+  } catch {
+    return url;
+  }
+}
+
 const Highlights = () => {
   const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [selection, setSelection] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<number | null>(null);
 
   useEffect(() => {
     chrome.storage.local.get({ highlights: [] }, (result) => {
@@ -55,6 +64,9 @@ const Highlights = () => {
     });
   };
 
+  const truncate = (text: string, max = 60) =>
+    text.length > max ? text.slice(0, max) : text;
+
   return (
     <div className="auth-container highlights-container">
       <img src="/studyaid-icon.png" alt="StudyAid Logo" className="studyaid-icon" />
@@ -76,9 +88,16 @@ const Highlights = () => {
         {highlights.length === 0 && <div style={{ color: '#b0b3c7', textAlign: 'center' }}>No highlights yet.</div>}
         {highlights.map((h, i) => (
           <div className="highlight-item" key={i}>
-            <div className="highlight-text">{h.text}</div>
+            <div className="highlight-text" style={{ cursor: 'pointer' }} onClick={() => setExpanded(expanded === i ? null : i)}>
+              {expanded === i ? h.text : truncate(h.text)}
+              {h.text.length > 60 && (
+                <span style={{ color: '#7f5fff', marginLeft: 4, cursor: 'pointer' }}>
+                  {expanded === i ? ' (less)' : ' ...'}
+                </span>
+              )}
+            </div>
             <div className="highlight-meta">
-              <span className="highlight-url">{h.url}</span>
+              <span className="highlight-url">{getDomain(h.url)}</span>
               <span className="highlight-date">{new Date(h.date).toLocaleDateString()}</span>
             </div>
           </div>
