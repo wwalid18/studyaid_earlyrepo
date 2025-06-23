@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "StudyAid Extension",
+  "version": "1.0",
+  "action": {
+    "default_popup": "index.html"
+  },
+  "permissions": ["storage", "activeTab", "scripting"],
+  "host_permissions": ["http://localhost:5000/*"],
+  "icons": {
+    "128": "studyaid-icon.png"
+  }
+}
