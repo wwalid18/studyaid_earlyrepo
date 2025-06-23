@@ -3,10 +3,11 @@
   "name": "StudyAid Extension",
   "version": "1.0",
   "action": {
-    "default_popup": "index.html"
+    "default_popup": "index.html",
+    "default_title": "StudyAid Extension"
   },
   "permissions": ["storage", "activeTab", "scripting"],
-  "host_permissions": ["http://localhost:5000/*"],
+  "host_permissions": ["<all_urls>"],
   "icons": {
     "128": "studyaid-icon.png"
   }
