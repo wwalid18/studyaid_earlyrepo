@@ -28,10 +28,17 @@ const Highlights = () => {
     });
 
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]?.id) {
+      const tab = tabs[0];
+      if (
+        tab?.id &&
+        tab.url &&
+        !tab.url.startsWith('chrome://') &&
+        !tab.url.startsWith('chrome-extension://') &&
+        !tab.url.startsWith('edge://')
+      ) {
         chrome.scripting.executeScript(
           {
-            target: { tabId: tabs[0].id },
+            target: { tabId: tab.id },
             func: () => window.getSelection()?.toString() || ''
           },
           (results) => {
@@ -59,7 +66,7 @@ const Highlights = () => {
           const highlights = result.highlights;
           highlights.unshift(newHighlight);
           chrome.storage.local.set({ highlights }, () => {
-            setHighlights([newHighlight, ...highlights]);
+            setHighlights(highlights);
             setSelection(null);
             setShowModal(false);
           });
@@ -101,7 +108,7 @@ const Highlights = () => {
         </div>
       )}
       <div className="highlights-list" style={{ filter: showModal ? 'blur(2px)' : 'none' }}>
-        {highlights.length === 0 && <div style={{ color: '#b0b3c7', textAlign: 'center' }}>No highlights yet.</div>}
+        {highlights.length === 0 && <div style={{ color: '#b0b3c7', textAlign: 'center' }}>No saved highlights yet.</div>}
         {highlights.map((h, i) => (
           <div className="highlight-item" key={i}>
             <button
