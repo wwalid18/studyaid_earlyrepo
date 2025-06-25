@@ -12,7 +12,10 @@ const routes = {
   changepassword: ChangePassword,
 };
 
-export const Router = ({ route, onRouteChange }: { route: keyof typeof routes, onRouteChange: (route: string) => void }) => {
+export const Router = ({ route, onRouteChange, onLogout }: { route: keyof typeof routes, onRouteChange: (route: string) => void, onLogout?: () => void }) => {
+  if (route === 'highlights') {
+    return <Highlights onRouteChange={onRouteChange} onLogout={onLogout} />;
+  }
   const Page = routes[route] || Login;
   return <Page onRouteChange={onRouteChange} />;
 };

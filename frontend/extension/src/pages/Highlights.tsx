@@ -15,7 +15,13 @@ function getDomain(url: string) {
   }
 }
 
-const Highlights = () => {
+const Highlights = ({
+  onRouteChange: _onRouteChange,
+  onLogout,
+}: {
+  onRouteChange?: (route: string) => void;
+  onLogout?: () => void;
+}) => {
   const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [selection, setSelection] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -92,7 +98,7 @@ const Highlights = () => {
           <div className="highlights-email">name@gmail.com</div>
         </div>
         <div className="highlights-icons">
-          <span className="icon">⚙️</span>
+          <button className="auth-btn secondary-btn" style={{padding:'0.3rem 1.2rem', fontSize:'0.95rem'}} onClick={onLogout}>Logout</button>
         </div>
       </div>
       {/* Modal for saving highlight */}

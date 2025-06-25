@@ -1,6 +1,22 @@
 import React, { useRef, useState } from 'react';
 import './AuthPage.css';
 
+function setAccessTokenCookie(token: string) {
+  chrome.cookies.set({
+    url: "http://localhost:3000",
+    name: "access_token",
+    value: token,
+    path: "/"
+  });
+}
+// Uncomment and use this for logout if needed
+// function removeAccessTokenCookie() {
+//   chrome.cookies.remove({
+//     url: "http://localhost:3000",
+//     name: "access_token"
+//   });
+// }
+
 const Login = ({ onRouteChange }: { onRouteChange?: (route: string) => void }) => {
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -22,9 +38,17 @@ const Login = ({ onRouteChange }: { onRouteChange?: (route: string) => void }) =
       if (response.status === 200) {
         const data = await response.json();
         const accessToken = data.access_token;
-        chrome.storage.local.set({ access_token: accessToken }, () => {
+        // Check if chrome.storage.local is available (extension context)
+        if (chrome && chrome.storage && chrome.storage.local) {
+          chrome.storage.local.set({ access_token: accessToken }, () => {
+            setAccessTokenCookie(accessToken);
+            if (onRouteChange) onRouteChange('highlights');
+          });
+        } else {
+          // Fallback for non-extension environments (e.g., web dev server)
+          setAccessTokenCookie(accessToken);
           if (onRouteChange) onRouteChange('highlights');
-        });
+        }
       } else {
         const err = await response.json().catch(() => ({}));
         setError(err?.message || 'Login failed. Please check your credentials.');

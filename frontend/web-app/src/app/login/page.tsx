@@ -6,6 +6,16 @@ import Image from "next/image";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+function setAccessTokenCookie(token: string) {
+  document.cookie = `access_token=${token}; path=/; SameSite=Lax`;
+}
+function removeAccessTokenCookie() {
+  document.cookie = 'access_token=; Max-Age=0; path=/;';
+}
+function getCookie(name: string) {
+  return document.cookie.split('; ').find(row => row.startsWith(name + '='))?.split('=')[1];
+}
+
 export default function LoginPage() {
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
@@ -28,7 +38,7 @@ export default function LoginPage() {
       if (response.status === 200) {
         const data = await response.json();
         const accessToken = data.access_token;
-        localStorage.setItem('access_token', accessToken);
+        setAccessTokenCookie(accessToken);
         router.push('/');
       } else {
         const err = await response.json().catch(() => ({}));
@@ -40,6 +50,9 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  // Example logout handler (call this on logout action)
+  // removeAccessTokenCookie();
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#181c2f] to-[#23243a]">

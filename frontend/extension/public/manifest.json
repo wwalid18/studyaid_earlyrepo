@@ -6,7 +6,7 @@
     "default_popup": "index.html",
     "default_title": "StudyAid Extension"
   },
-  "permissions": ["storage", "activeTab", "scripting"],
+  "permissions": ["storage", "activeTab", "scripting", "cookies"],
   "host_permissions": ["<all_urls>"],
   "icons": {
     "128": "studyaid-icon.png"
