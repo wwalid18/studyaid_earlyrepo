@@ -3,11 +3,11 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import SwirlBackground from "@/components/SwirlBackground";
 import Image from "next/image";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 function setAccessTokenCookie(token: string) {
-  document.cookie = `access_token=${token}; path=/; SameSite=Lax`;
+  document.cookie = `access_token=${token}; path=/; domain=localhost; SameSite=Lax`;
 }
 function removeAccessTokenCookie() {
   document.cookie = 'access_token=; Max-Age=0; path=/;';
@@ -22,6 +22,12 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (getCookie('access_token')) {
+      router.replace('/temp-logout');
+    }
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,7 +45,8 @@ export default function LoginPage() {
         const data = await response.json();
         const accessToken = data.access_token;
         setAccessTokenCookie(accessToken);
-        router.push('/');
+        router.push('/temp-logout');
+        setTimeout(() => window.location.reload(), 100);
       } else {
         const err = await response.json().catch(() => ({}));
         setError(err?.message || 'Login failed. Please check your credentials.');

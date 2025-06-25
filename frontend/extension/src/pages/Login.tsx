@@ -42,6 +42,10 @@ const Login = ({ onRouteChange }: { onRouteChange?: (route: string) => void }) =
         if (chrome && chrome.storage && chrome.storage.local) {
           chrome.storage.local.set({ access_token: accessToken }, () => {
             setAccessTokenCookie(accessToken);
+            // Reload the active tab after login
+            chrome.tabs && chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+              if (tabs[0]?.id) chrome.tabs.reload(tabs[0].id);
+            });
             if (onRouteChange) onRouteChange('highlights');
           });
         } else {
