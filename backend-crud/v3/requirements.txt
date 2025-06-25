@@ -12,3 +12,4 @@ marshmallow-sqlalchemy
 python-dotenv==1.0.0
 groq
 requests
+flask-cors
