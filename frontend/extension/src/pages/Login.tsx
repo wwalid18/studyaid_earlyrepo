@@ -1,11 +1,41 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import './AuthPage.css';
 
 const Login = ({ onRouteChange }: { onRouteChange?: (route: string) => void }) => {
-  const handleSubmit = (e: React.FormEvent) => {
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (onRouteChange) onRouteChange('highlights');
+    setError(null);
+    setLoading(true);
+    const email = emailRef.current?.value || '';
+    const password = passwordRef.current?.value || '';
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      if (response.status === 200) {
+        const data = await response.json();
+        const accessToken = data.access_token;
+        chrome.storage.local.set({ access_token: accessToken }, () => {
+          if (onRouteChange) onRouteChange('highlights');
+        });
+      } else {
+        const err = await response.json().catch(() => ({}));
+        setError(err?.message || 'Login failed. Please check your credentials.');
+      }
+    } catch (err) {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
+
   return (
     <div className="auth-container">
       <div className="auth-header center-header">
@@ -13,12 +43,13 @@ const Login = ({ onRouteChange }: { onRouteChange?: (route: string) => void }) =
         <h2 className="center-title">Get Started With<br />StudyAid AI</h2>
       </div>
       <form className="auth-form" onSubmit={handleSubmit}>
-        <input type="email" placeholder="Email" className="auth-input" />
-        <input type="password" placeholder="Password" className="auth-input" />
+        <input ref={emailRef} type="email" placeholder="Email" className="auth-input" />
+        <input ref={passwordRef} type="password" placeholder="Password" className="auth-input" />
         <div className="auth-links">
           <span className="auth-link" onClick={() => onRouteChange && onRouteChange('forgot')}>forgot password?</span>
         </div>
-        <button type="submit" className="auth-btn gradient-btn">Sign in</button>
+        <button type="submit" className="auth-btn gradient-btn" disabled={loading}>{loading ? 'Signing in...' : 'Sign in'}</button>
+        {error && <div style={{ color: '#ff6b6b', marginTop: 8, textAlign: 'center', fontSize: '0.98rem' }}>{error}</div>}
       </form>
       <div className="auth-footer">
         <span>New to StudyAid ?</span>
