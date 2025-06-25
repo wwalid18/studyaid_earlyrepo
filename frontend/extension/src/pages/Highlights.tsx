@@ -1,10 +1,16 @@
 import { useEffect, useState } from 'react';
 import './AuthPage.css';
+import { getAccessToken } from '../storage';
 
 interface Highlight {
   text: string;
   url: string;
   date: string;
+}
+
+interface UserInfo {
+  username: string;
+  email: string;
 }
 
 function getDomain(url: string) {
@@ -27,6 +33,9 @@ const Highlights = ({
   const [expanded, setExpanded] = useState<number | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [confirmDeleteIdx, setConfirmDeleteIdx] = useState<number | null>(null);
+  const [user, setUser] = useState<UserInfo | null>(null);
+  const [userLoading, setUserLoading] = useState(true);
+  const [userError, setUserError] = useState<string | null>(null);
 
   useEffect(() => {
     chrome.storage.local.get({ highlights: [] }, (result) => {
@@ -56,6 +65,31 @@ const Highlights = ({
           }
         );
       }
+    });
+  }, []);
+
+  useEffect(() => {
+    // Fetch user info
+    setUserLoading(true);
+    setUserError(null);
+    getAccessToken().then(token => {
+      if (!token) {
+        setUserError('No access token');
+        setUserLoading(false);
+        return;
+      }
+      fetch('http://localhost:5000/api/users/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+        .then(async res => {
+          if (!res.ok) throw new Error('Failed to fetch user info');
+          const data = await res.json();
+          setUser({ username: data.username, email: data.email });
+        })
+        .catch(() => {
+          setUserError('Could not load user info');
+        })
+        .finally(() => setUserLoading(false));
     });
   }, []);
 
@@ -94,8 +128,16 @@ const Highlights = ({
       <img src="/studyaid-icon.png" alt="StudyAid Logo" className="studyaid-icon" />
       <div className="highlights-header">
         <div>
-          <div className="highlights-username">Username</div>
-          <div className="highlights-email">name@gmail.com</div>
+          {userLoading ? (
+            <div style={{ color: '#b0b3c7', fontSize: '1.1rem', minHeight: 40 }}>Loading...</div>
+          ) : userError ? (
+            <div style={{ color: '#ff6b6b', fontSize: '1.1rem', minHeight: 40 }}>{userError}</div>
+          ) : user ? (
+            <>
+              <div className="highlights-username">{user.username}</div>
+              <div className="highlights-email">{user.email}</div>
+            </>
+          ) : null}
         </div>
         <div className="highlights-icons">
           <button className="auth-btn secondary-btn" style={{padding:'0.3rem 1.2rem', fontSize:'0.95rem'}} onClick={onLogout}>Logout</button>

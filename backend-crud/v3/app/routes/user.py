@@ -52,3 +52,13 @@ def delete_user(user_id):
         return jsonify({'message': 'User deleted successfully'}), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 404
+
+@user_bp.route('/users/me', methods=['GET'])
+@jwt_required()
+def get_current_user():
+    current_user_id = get_jwt_identity()
+    try:
+        user = UserFacade.get_user_by_id(current_user_id)
+        return jsonify(user_schema.dump(user)), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 404
