@@ -180,9 +180,9 @@ const Highlights = ({
     setExporting(false);
   };
 
-  // Handler for logo click: open settings page in web app
+  // Handler for logo click: open home page in web app
   const handleLogoClick = () => {
-    const url = 'http://localhost:3000/settings';
+    const url = 'http://localhost:3000/';
     if (chrome && chrome.tabs && chrome.tabs.create) {
       chrome.tabs.create({ url });
     } else {
