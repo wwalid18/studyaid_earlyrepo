@@ -17,11 +17,19 @@ function setAccessTokenCookie(token: string) {
 //   });
 // }
 
+// Eye icon SVGs
+const EyeIcon = ({ open }: { open: boolean }) => open ? (
+  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8" ry="5" /><circle cx="12" cy="12" r="2.5" /><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" opacity=".2"/></svg>
+) : (
+  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8" ry="5" /><path d="M3 3l18 18" stroke="#b0b3c7" strokeWidth="2"/><circle cx="12" cy="12" r="2.5" /><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" opacity=".2"/></svg>
+);
+
 const Login = ({ onRouteChange }: { onRouteChange?: (route: string) => void }) => {
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPw, setShowPw] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +80,23 @@ const Login = ({ onRouteChange }: { onRouteChange?: (route: string) => void }) =
       </div>
       <form className="auth-form" onSubmit={handleSubmit}>
         <input ref={emailRef} type="email" placeholder="Email" className="auth-input" />
-        <input ref={passwordRef} type="password" placeholder="Password" className="auth-input" />
+        <div style={{ position: 'relative' }}>
+          <input
+            ref={passwordRef}
+            type={showPw ? 'text' : 'password'}
+            placeholder="Password"
+            className="auth-input pr-10"
+          />
+          <button
+            type="button"
+            aria-label={showPw ? 'Hide password' : 'Show password'}
+            onClick={() => setShowPw(v => !v)}
+            style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', padding: 0, margin: 0, color: '#b0b3c7', cursor: 'pointer' }}
+            tabIndex={0}
+          >
+            <EyeIcon open={showPw} />
+          </button>
+        </div>
         <div className="auth-links">
           <span className="auth-link" onClick={() => onRouteChange && onRouteChange('forgot')}>forgot password?</span>
         </div>

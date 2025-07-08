@@ -36,6 +36,9 @@ const Highlights = ({
   const [user, setUser] = useState<UserInfo | null>(null);
   const [userLoading, setUserLoading] = useState(true);
   const [userError, setUserError] = useState<string | null>(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportSuccess, setExportSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     chrome.storage.local.get({ highlights: [] }, (result) => {
@@ -123,9 +126,73 @@ const Highlights = ({
   const truncate = (text: string, max = 60) =>
     text.length > max ? text.slice(0, max) : text;
 
+  // Export highlights to backend one by one
+  const handleExportHighlights = async () => {
+    setExporting(true);
+    setExportError(null);
+    setExportSuccess(null);
+    const highlightsToExport = [...highlights];
+    if (highlightsToExport.length === 0) {
+      setExporting(false);
+      setExportError('No highlights to export.');
+      return;
+    }
+    const token = await getAccessToken();
+    if (!token) {
+      setExporting(false);
+      setExportError('Not authenticated. Please log in.');
+      return;
+    }
+    let failed = false;
+    for (const h of highlightsToExport) {
+      try {
+        const res = await fetch('http://localhost:5000/api/highlights', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            url: h.url,
+            text: h.text,
+            timestamp: h.date,
+          }),
+        });
+        if (!res.ok) {
+          failed = true;
+          const err = await res.json().catch(() => ({}));
+          setExportError(err?.message || 'Failed to export some highlights.');
+          break;
+        }
+      } catch (err) {
+        failed = true;
+        setExportError('Network error while exporting.');
+        break;
+      }
+    }
+    if (!failed) {
+      // Remove all highlights from storage
+      chrome.storage.local.set({ highlights: [] }, () => {
+        setHighlights([]);
+        setExportSuccess('All highlights exported successfully!');
+      });
+    }
+    setExporting(false);
+  };
+
+  // Handler for logo click: open settings page in web app
+  const handleLogoClick = () => {
+    const url = 'http://localhost:3000/settings';
+    if (chrome && chrome.tabs && chrome.tabs.create) {
+      chrome.tabs.create({ url });
+    } else {
+      window.open(url, '_blank');
+    }
+  };
+
   return (
     <div className="auth-container highlights-container">
-      <img src="/studyaid-icon.png" alt="StudyAid Logo" className="studyaid-icon" />
+      <img src="/studyaid-icon.png" alt="StudyAid Logo" className="studyaid-icon" onClick={handleLogoClick} style={{ cursor: 'pointer' }} />
       <div className="highlights-header">
         <div>
           {userLoading ? (
@@ -197,7 +264,11 @@ const Highlights = ({
           </div>
         ))}
       </div>
-      <button className="auth-btn gradient-btn export-btn">Export Highlights</button>
+      {exportError && <div style={{ color: '#ff6b6b', marginBottom: 8, textAlign: 'center', fontSize: '0.98rem' }}>{exportError}</div>}
+      {exportSuccess && <div style={{ color: '#7f5fff', marginBottom: 8, textAlign: 'center', fontSize: '0.98rem' }}>{exportSuccess}</div>}
+      <button className="auth-btn gradient-btn export-btn" onClick={handleExportHighlights} disabled={exporting || highlights.length === 0}>
+        {exporting ? 'Exporting...' : 'Export Highlights'}
+      </button>
     </div>
   );
 };

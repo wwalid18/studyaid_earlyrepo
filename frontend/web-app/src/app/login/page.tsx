@@ -16,16 +16,24 @@ function getCookie(name: string) {
   return document.cookie.split('; ').find(row => row.startsWith(name + '='))?.split('=')[1];
 }
 
+// Eye icon SVGs
+const EyeIcon = ({ open }: { open: boolean }) => open ? (
+  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8" ry="5" /><circle cx="12" cy="12" r="2.5" /><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" opacity=".2"/></svg>
+) : (
+  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8" ry="5" /><path d="M3 3l18 18" stroke="#b0b3c7" strokeWidth="2"/><circle cx="12" cy="12" r="2.5" /><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" opacity=".2"/></svg>
+);
+
 export default function LoginPage() {
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const [showPw, setShowPw] = useState(false);
 
   useEffect(() => {
     if (getCookie('access_token')) {
-      router.replace('/temp-logout');
+      router.replace('/');
     }
   }, [router]);
 
@@ -45,7 +53,7 @@ export default function LoginPage() {
         const data = await response.json();
         const accessToken = data.access_token;
         setAccessTokenCookie(accessToken);
-        router.push('/temp-logout');
+        router.push('/');
         setTimeout(() => window.location.reload(), 100);
       } else {
         const err = await response.json().catch(() => ({}));
@@ -77,13 +85,24 @@ export default function LoginPage() {
             className="rounded-xl px-5 py-3 bg-[#23243a] text-white placeholder-[#b0b3c7] border border-[#23243a] text-base font-medium focus:outline-none focus:ring-2 focus:ring-[#7f5fff] shadow"
             required
           />
-          <input
-            ref={passwordRef}
-            type="password"
-            placeholder="Password"
-            className="rounded-xl px-5 py-3 bg-[#23243a] text-white placeholder-[#b0b3c7] border border-[#23243a] text-base font-medium focus:outline-none focus:ring-2 focus:ring-[#7f5fff] shadow"
-            required
-          />
+          <div className="relative">
+            <input
+              ref={passwordRef}
+              type={showPw ? "text" : "password"}
+              placeholder="Password"
+              className="rounded-xl px-5 py-3 pr-10 bg-[#23243a] text-white placeholder-[#b0b3c7] border border-[#23243a] text-base font-medium focus:outline-none focus:ring-2 focus:ring-[#7f5fff] shadow"
+              required
+            />
+            <button
+              type="button"
+              aria-label={showPw ? 'Hide password' : 'Show password'}
+              onClick={() => setShowPw(v => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[#b0b3c7] hover:text-white focus:outline-none"
+              tabIndex={0}
+            >
+              <EyeIcon open={showPw} />
+            </button>
+          </div>
           <div className="flex justify-between text-xs text-white/80 mt-1">
             <Link href="/forgot-password" className="hover:underline">forgot password?</Link>
           </div>
