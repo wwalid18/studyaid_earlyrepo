@@ -8,7 +8,7 @@ import SwirlBackground from "@/components/SwirlBackground";
 const sidebarItems = [
   { name: "Home", icon: "/icons/home.svg", route: "/" },
   { name: "Highlights", icon: "/icons/highlights.svg", route: "/highlights" },
-  { name: "Collections", icon: "/icons/collections.svg", route: "/collection" },
+  { name: "Collections", icon: "/icons/collections.svg", route: "/collections" },
   { name: "Settings", icon: "/icons/settings.svg", route: "/settings" },
 ];
 
