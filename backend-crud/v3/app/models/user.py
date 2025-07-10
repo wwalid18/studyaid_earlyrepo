@@ -94,9 +94,9 @@ class User(BaseModel):
 
     def get_collections(self):
         """Get all collections (owned and collaborated)"""
-        owned = self.owned_collections.all()
-        collaborated = self.collaborated_collections.all()
-        return owned + collaborated
+        owned = self.owned_collections
+        collaborated = self.collaborated_collections
+        return list(owned) + list(collaborated)
 
     def __repr__(self):
         return f'<User {self.username}>'

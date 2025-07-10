@@ -213,3 +213,32 @@ def get_collaborators(collection_id):
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+@collection_bp.route('/collections/<collection_id>/collaborators/me', methods=['DELETE'])
+@jwt_required()
+def remove_self_as_collaborator(collection_id):
+    current_user_id = get_jwt_identity()
+    try:
+        collection = CollectionFacade.get_collection_by_id(collection_id)
+        user = User.query.get_or_404(current_user_id)
+        if collection.user_id == current_user_id:
+            return jsonify({'error': 'Owner cannot remove themselves as collaborator'}), 400
+        if not collection.is_collaborator(user):
+            return jsonify({'error': 'You are not a collaborator in this collection'}), 400
+        collection.remove_collaborator(user)
+        return jsonify({'message': 'You have been removed as a collaborator from this collection'}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@collection_bp.route('/collections/all-accessible', methods=['GET'])
+@jwt_required()
+def get_all_accessible_collections():
+    current_user_id = get_jwt_identity()
+    try:
+        collections = CollectionFacade.get_all_accessible_collections(current_user_id)
+        return jsonify({
+            'collections': collections_schema.dump(collections),
+            'total': len(collections)
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

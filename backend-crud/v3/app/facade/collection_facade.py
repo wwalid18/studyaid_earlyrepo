@@ -118,3 +118,8 @@ class CollectionFacade:
         db.session.commit()
         collection.highlights_count = len(collection.highlights)  # Update highlights count
         return highlights
+
+    @staticmethod
+    def get_all_accessible_collections(user_id):
+        user = User.query.get_or_404(user_id)
+        return user.get_collections()

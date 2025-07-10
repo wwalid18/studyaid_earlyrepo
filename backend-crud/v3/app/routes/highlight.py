@@ -59,6 +59,16 @@ def get_highlights_by_user_id(user_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@highlight_bp.route('/highlights/mine', methods=['GET'])
+@jwt_required()
+def get_my_highlights():
+    current_user_id = get_jwt_identity()
+    try:
+        highlights = HighlightFacade.get_user_highlights(current_user_id)
+        return jsonify(highlights_schema.dump(highlights)), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @highlight_bp.route('/highlights/<highlight_id>', methods=['GET'])
 @jwt_required()
 def get_highlight(highlight_id):
