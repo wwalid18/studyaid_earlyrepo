@@ -52,7 +52,12 @@ export default function ResetPasswordPage() {
         setTimeout(() => router.push('/login'), 1500);
       } else {
         const err = await response.json().catch(() => ({}));
-        setError(err?.message || 'Reset failed. Please try again.');
+        let msg = err?.error || err?.message;
+        if (!msg && err && typeof err === 'object') {
+          const fieldErr = Object.values(err).find(v => Array.isArray(v) && v.length && typeof v[0] === 'string');
+          if (fieldErr) msg = fieldErr[0];
+        }
+        setError(msg || 'Reset failed. Please try again.');
       }
     } catch (err) {
       setError('Network error. Please try again.');

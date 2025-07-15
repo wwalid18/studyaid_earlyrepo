@@ -28,11 +28,16 @@ export default function ForgotPasswordPage() {
       if (response.status === 200) {
         const data = await response.json();
         localStorage.setItem('reset_token', data.token);
-        setSuccess('Reset link sent! Check your email.');
+        setSuccess(data?.message || 'Reset link sent! Check your email.');
         setTimeout(() => router.push('/reset-password'), 1200);
       } else {
         const err = await response.json().catch(() => ({}));
-        setError(err?.message || 'Request failed. Please try again.');
+        let msg = err?.error || err?.message;
+        if (!msg && err && typeof err === 'object') {
+          const fieldErr = Object.values(err).find(v => Array.isArray(v) && v.length && typeof v[0] === 'string');
+          if (fieldErr) msg = fieldErr[0];
+        }
+        setError(msg || 'Request failed. Please try again.');
       }
     } catch (err) {
       setError('Network error. Please try again.');

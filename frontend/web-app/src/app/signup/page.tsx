@@ -46,7 +46,13 @@ export default function SignupPage() {
         router.push('/login');
       } else {
         const err = await response.json().catch(() => ({}));
-        setError(err?.message || 'Registration failed. Please try again.');
+        let msg = err?.error || err?.message;
+        if (!msg && err && typeof err === 'object') {
+          // Check for field errors
+          const fieldErr = Object.values(err).find(v => Array.isArray(v) && v.length && typeof v[0] === 'string');
+          if (fieldErr) msg = fieldErr[0];
+        }
+        setError(msg || 'Registration failed. Please try again.');
       }
     } catch (err) {
       setError('Network error. Please try again.');

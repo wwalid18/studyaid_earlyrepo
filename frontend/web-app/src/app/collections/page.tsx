@@ -127,10 +127,18 @@ export default function CollectionsPage() {
         },
         body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error('Failed to create collection');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        let msg = err?.error || err?.message;
+        if (!msg && err && typeof err === 'object') {
+          const fieldErr = Object.values(err).find(v => Array.isArray(v) && v.length && typeof v[0] === 'string');
+          if (Array.isArray(fieldErr)) msg = fieldErr[0];
+        }
+        setError(msg || 'Could not create collection');
+        setCreateLoading(false);
+        return;
+      }
       const data = await res.json();
-      // Debug: log the response to help diagnose collection ID extraction
-      console.log('Collection creation response:', data);
       // Defensive: ensure we get the id from the first collection in the array
       const collectionId = data.collections && Array.isArray(data.collections) && data.collections[0]?.id ? data.collections[0].id : null;
       if (selectedHighlights.length && collectionId) {
@@ -143,11 +151,20 @@ export default function CollectionsPage() {
           body: JSON.stringify(selectedHighlights.map(String))
         });
         if (!addRes.ok) {
-          const errText = await addRes.text();
-          throw new Error('Failed to add highlights to collection: ' + errText);
+          const err = await addRes.json().catch(() => ({}));
+          let msg = err?.error || err?.message;
+          if (!msg && err && typeof err === 'object') {
+            const fieldErr = Object.values(err).find(v => Array.isArray(v) && v.length && typeof v[0] === 'string');
+            if (Array.isArray(fieldErr)) msg = fieldErr[0];
+          }
+          setError('Failed to add highlights to collection: ' + (msg || 'Unknown error'));
+          setCreateLoading(false);
+          return;
         }
       } else if (selectedHighlights.length && !collectionId) {
-        throw new Error('Could not determine new collection ID. Response: ' + JSON.stringify(data));
+        setError('Could not determine new collection ID.');
+        setCreateLoading(false);
+        return;
       }
       setSuccess('Collection created successfully!');
       setShowCreate(false);
@@ -216,9 +233,18 @@ export default function CollectionsPage() {
           headers: { 'Authorization': `Bearer ${token}` }
         });
       }
-      if (!res.ok) throw new Error('Failed to remove collection');
-      setCollections(prev => prev.filter(c => c.id !== removePopup.id));
-      setRemovePopup(null);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        let msg = err?.error || err?.message;
+        if (!msg && err && typeof err === 'object') {
+          const fieldErr = Object.values(err).find(v => Array.isArray(v) && v.length && typeof v[0] === 'string');
+          if (Array.isArray(fieldErr)) msg = fieldErr[0];
+        }
+        setRemoveError(msg || 'Could not remove collection');
+      } else {
+        setCollections(prev => prev.filter(c => c.id !== removePopup.id));
+        setRemovePopup(null);
+      }
     } catch (err: any) {
       setRemoveError(err.message || 'Could not remove collection');
     } finally {

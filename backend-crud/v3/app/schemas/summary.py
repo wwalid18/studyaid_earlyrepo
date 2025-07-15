@@ -15,6 +15,7 @@ class SummarySchema(ma.SQLAlchemyAutoSchema):
     collection = fields.Nested('CollectionSchema', dump_only=True, exclude=('summaries', 'highlights'))
     highlights = fields.Nested('HighlightSchema', many=True, dump_only=True)
     quiz = fields.Nested('QuizSchema', dump_only=True, exclude=('summary',))
+    user = fields.Nested('UserBaseSchema', dump_only=True, only=("id", "username", "email"))
 
 class SummaryCreateSchema(ma.Schema):
     collection_id = fields.Str(required=True, validate=validate.Length(equal=36))

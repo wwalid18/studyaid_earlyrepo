@@ -96,7 +96,16 @@ export default function SettingsPage() {
         },
         body: JSON.stringify({ username: editUsername, email: editEmail })
       });
-      if (!res.ok) throw new Error('Failed to update profile');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        let msg = err?.error || err?.message;
+        if (!msg && err && typeof err === 'object') {
+          const fieldErr = Object.values(err).find(v => Array.isArray(v) && v.length && typeof v[0] === 'string');
+          if (fieldErr) msg = fieldErr[0];
+        }
+        setProfileError(msg || 'Could not update profile');
+        return;
+      }
       setProfileSuccess('Profile updated!');
       setUser({ ...user, username: editUsername, email: editEmail });
     } catch (err) {
@@ -126,7 +135,17 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ email: user.email })
       });
-      if (!reqRes.ok) throw new Error('Failed to request reset');
+      if (!reqRes.ok) {
+        const err = await reqRes.json().catch(() => ({}));
+        let msg = err?.error || err?.message;
+        if (!msg && err && typeof err === 'object') {
+          const fieldErr = Object.values(err).find(v => Array.isArray(v) && v.length && typeof v[0] === 'string');
+          if (fieldErr) msg = fieldErr[0];
+        }
+        setChangePwError(msg || 'Could not request password reset');
+        setChangePwLoading(false);
+        return;
+      }
       const reqData = await reqRes.json();
       const resetToken = reqData.token;
       // Reset password
@@ -135,7 +154,17 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: resetToken, new_password: pw1 })
       });
-      if (!resetRes.ok) throw new Error('Failed to reset password');
+      if (!resetRes.ok) {
+        const err = await resetRes.json().catch(() => ({}));
+        let msg = err?.error || err?.message;
+        if (!msg && err && typeof err === 'object') {
+          const fieldErr = Object.values(err).find(v => Array.isArray(v) && v.length && typeof v[0] === 'string');
+          if (fieldErr) msg = fieldErr[0];
+        }
+        setChangePwError(msg || 'Could not change password');
+        setChangePwLoading(false);
+        return;
+      }
       setChangePwSuccess('Password changed successfully!');
       setPw1(""); setPw2("");
     } catch (err) {
@@ -157,7 +186,17 @@ export default function SettingsPage() {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (!res.ok) throw new Error('Failed to delete account');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        let msg = err?.error || err?.message;
+        if (!msg && err && typeof err === 'object') {
+          const fieldErr = Object.values(err).find(v => Array.isArray(v) && v.length && typeof v[0] === 'string');
+          if (fieldErr) msg = fieldErr[0];
+        }
+        setDeleteError(msg || 'Could not delete account');
+        setDeleteLoading(false);
+        return;
+      }
       setDeleteSuccess('Account deleted. Logging out...');
       setTimeout(() => {
         document.cookie = 'access_token=; Max-Age=0; path=/;';

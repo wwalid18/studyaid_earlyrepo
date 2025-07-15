@@ -100,7 +100,16 @@ export default function CollectionDetailsPage() {
       const res = await fetch('http://localhost:5000/api/highlights/mine', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (!res.ok) throw new Error('Failed to fetch your highlights');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        let msg = err?.error || err?.message;
+        if (!msg && err && typeof err === 'object') {
+          const fieldErr = Object.values(err).find(v => Array.isArray(v) && v.length && typeof v[0] === 'string');
+          if (Array.isArray(fieldErr)) msg = fieldErr[0];
+        }
+        setAddError(msg || 'Could not fetch your highlights');
+        return;
+      }
       const data = await res.json();
       setUserHighlights(data);
     } catch (err: any) {
@@ -134,7 +143,16 @@ export default function CollectionDetailsPage() {
         },
         body: JSON.stringify(selectedHighlightIds.map(String))
       });
-      if (!res.ok) throw new Error('Failed to add highlight(s)');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        let msg = err?.error || err?.message;
+        if (!msg && err && typeof err === 'object') {
+          const fieldErr = Object.values(err).find(v => Array.isArray(v) && v.length && typeof v[0] === 'string');
+          if (Array.isArray(fieldErr)) msg = fieldErr[0];
+        }
+        setAddError(msg || 'Could not add highlight(s)');
+        return;
+      }
       const data = await res.json();
       setCollection((prev: any) => ({ ...prev, highlights: [...(prev?.highlights || []), ...(data.highlights || [])] }));
       setShowAddHighlight(false);
@@ -164,7 +182,16 @@ export default function CollectionDetailsPage() {
         },
         body: JSON.stringify({ email: collaboratorEmail })
       });
-      if (!res.ok) throw new Error('Failed to add collaborator');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        let msg = err?.error || err?.message;
+        if (!msg && err && typeof err === 'object') {
+          const fieldErr = Object.values(err).find(v => Array.isArray(v) && v.length && typeof v[0] === 'string');
+          if (Array.isArray(fieldErr)) msg = fieldErr[0];
+        }
+        setCollabError(msg || 'Could not add collaborator');
+        return;
+      }
       const data = await res.json();
       setCollection((prev: any) => ({ ...prev, collaborators: [...(prev?.collaborators || []), data.collaborator] }));
       setCollaboratorEmail("");
@@ -185,7 +212,16 @@ export default function CollectionDetailsPage() {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (!res.ok) throw new Error('Failed to remove collaborator');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        let msg = err?.error || err?.message;
+        if (!msg && err && typeof err === 'object') {
+          const fieldErr = Object.values(err).find(v => Array.isArray(v) && v.length && typeof v[0] === 'string');
+          if (Array.isArray(fieldErr)) msg = fieldErr[0];
+        }
+        setCollabError(msg || 'Could not remove collaborator');
+        return;
+      }
       setCollection((prev: any) => ({
         ...prev,
         collaborators: (prev?.collaborators || []).filter((c: any) => c.id !== userId)
@@ -207,7 +243,16 @@ export default function CollectionDetailsPage() {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (!res.ok) throw new Error('Failed to remove highlight from collection');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        let msg = err?.error || err?.message;
+        if (!msg && err && typeof err === 'object') {
+          const fieldErr = Object.values(err).find(v => Array.isArray(v) && v.length && typeof v[0] === 'string');
+          if (Array.isArray(fieldErr)) msg = fieldErr[0];
+        }
+        setRemoveHighlightError(msg || 'Could not remove highlight');
+        return;
+      }
       setCollection((prev: any) => ({
         ...prev,
         highlights: (prev?.highlights || []).filter((h: any) => h.id !== highlightId)
@@ -251,7 +296,16 @@ export default function CollectionDetailsPage() {
           timestamp
         })
       });
-      if (!res.ok) throw new Error('Failed to generate summary');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        let msg = err?.error || err?.message;
+        if (!msg && err && typeof err === 'object') {
+          const fieldErr = Object.values(err).find(v => Array.isArray(v) && v.length && typeof v[0] === 'string');
+          if (Array.isArray(fieldErr)) msg = fieldErr[0];
+        }
+        setGenerateError(msg || 'Could not generate summary');
+        return;
+      }
       const data = await res.json();
       setCollection((prev: any) => ({
         ...prev,
@@ -276,7 +330,16 @@ export default function CollectionDetailsPage() {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (!res.ok) throw new Error('Failed to delete summary');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        let msg = err?.error || err?.message;
+        if (!msg && err && typeof err === 'object') {
+          const fieldErr = Object.values(err).find(v => Array.isArray(v) && v.length && typeof v[0] === 'string');
+          if (Array.isArray(fieldErr)) msg = fieldErr[0];
+        }
+        setRemoveSummaryError(msg || 'Could not delete summary');
+        return;
+      }
       setCollection((prev: any) => ({
         ...prev,
         summaries: (prev?.summaries || []).filter((s: any) => s.id !== summaryId)
@@ -299,7 +362,16 @@ export default function CollectionDetailsPage() {
       const res = await fetch(`http://localhost:5000/api/summaries/${summaryId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (!res.ok) throw new Error('Failed to fetch summary details');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        let msg = err?.error || err?.message;
+        if (!msg && err && typeof err === 'object') {
+          const fieldErr = Object.values(err).find(v => Array.isArray(v) && v.length && typeof v[0] === 'string');
+          if (Array.isArray(fieldErr)) msg = fieldErr[0];
+        }
+        setSummaryDetailsError(msg || 'Could not fetch summary details');
+        return;
+      }
       const data = await res.json();
       setSummaryDetails(data.summary || data);
     } catch (err: any) {
@@ -660,7 +732,7 @@ export default function CollectionDetailsPage() {
 }
 
 function SummaryDetailsContent({ summaryDetails, onShowHighlights }: { summaryDetails: any, onShowHighlights: () => void }) {
-  const creator = summaryDetails.collection?.owner?.username || summaryDetails.collection?.owner?.email || "Unknown";
+  const creator = summaryDetails.user?.username || summaryDetails.user?.email || summaryDetails.user_id || "Unknown";
   return (
     <div className="flex flex-col gap-3">
       <div className="max-h-100 overflow-y-auto text-white font-semibold text-base whitespace-pre-line">

@@ -108,11 +108,12 @@ def delete_summary(summary_id):
     current_user_id = get_jwt_identity()
     try:
         summary = SummaryFacade.get_summary_by_id(summary_id)
-        
-        # Check if user owns the summary
-        if summary.user_id != current_user_id:
+        collection = Collection.query.get(summary.collection_id)
+        if not collection:
+            return jsonify({'error': 'Collection not found'}), 404
+        user = User.query.get(current_user_id)
+        if not collection.can_access(user):
             return jsonify({'error': 'Unauthorized access'}), 403
-        
         SummaryFacade.delete_summary(summary_id)
         return jsonify({
             'message': f'Summary {summary_id} deleted successfully'

@@ -73,7 +73,17 @@ export default function HighlightsPage() {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (!res.ok) throw new Error('Failed to delete highlight');
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        let msg = err?.error || err?.message;
+        if (!msg && err && typeof err === 'object') {
+          const fieldErr = Object.values(err).find(v => Array.isArray(v) && v.length && typeof v[0] === 'string');
+          if (fieldErr) msg = fieldErr[0];
+        }
+        setError(msg || 'Could not delete highlight');
+        setDeleting(false);
+        return;
+      }
       setHighlights(prev => prev.filter((_, i) => i !== idx));
       setConfirmDeleteIdx(null);
     } catch (err) {
