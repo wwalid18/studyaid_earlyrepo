@@ -27,21 +27,3 @@ class Summary(BaseModel):
 
     def __repr__(self):
         return f"<Summary {self.id} - {self.timestamp}>"
-
-    @staticmethod
-    def can_generate_summary(collection_id, highlight_ids):
-        """Check if a new summary can be generated for these highlights"""
-        # Get all summaries for this collection
-        existing_summaries = Summary.query.filter_by(collection_id=collection_id).all()
-        
-        for summary in existing_summaries:
-            # Get the set of highlight IDs for this summary
-            summary_highlight_ids = {h.id for h in summary.highlights}
-            # Get the set of new highlight IDs
-            new_highlight_ids = set(highlight_ids)
-            
-            # If the sets are identical, a summary already exists
-            if summary_highlight_ids == new_highlight_ids:
-                return False
-                
-        return True

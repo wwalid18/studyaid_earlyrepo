@@ -35,6 +35,19 @@ export default function CollectionDetailsPage() {
   const [isOwner, setIsOwner] = useState(false);
   const [removeHighlightLoading, setRemoveHighlightLoading] = useState<string | null>(null);
   const [removeHighlightError, setRemoveHighlightError] = useState<string | null>(null);
+  const [showSummaries, setShowSummaries] = useState(false);
+  const [showGenerateSummary, setShowGenerateSummary] = useState(false);
+  const [selectedSummaryHighlights, setSelectedSummaryHighlights] = useState<string[]>([]);
+  const [generateLoading, setGenerateLoading] = useState(false);
+  const [generateError, setGenerateError] = useState<string | null>(null);
+  const [removeSummaryLoading, setRemoveSummaryLoading] = useState<string | null>(null);
+  const [removeSummaryError, setRemoveSummaryError] = useState<string | null>(null);
+  const [showSummaryDetails, setShowSummaryDetails] = useState(false);
+  const [summaryDetails, setSummaryDetails] = useState<any>(null);
+  const [summaryDetailsLoading, setSummaryDetailsLoading] = useState(false);
+  const [summaryDetailsError, setSummaryDetailsError] = useState<string | null>(null);
+  const [showHighlightsModal, setShowHighlightsModal] = useState(false);
+  const [highlightsToShow, setHighlightsToShow] = useState<any[]>([]);
 
   // Helper to get user id from JWT
   function parseJwt(token: string) {
@@ -206,6 +219,96 @@ export default function CollectionDetailsPage() {
     }
   };
 
+  const handleSelectSummaryHighlight = (id: string) => {
+    setSelectedSummaryHighlights(prev => prev.includes(id)
+      ? prev.filter(hid => hid !== id)
+      : [...prev, id]
+    );
+  };
+
+  const handleGenerateSummary = async () => {
+    setGenerateError(null);
+    if (!selectedSummaryHighlights.length) {
+      setGenerateError('Please select at least one highlight.');
+      return;
+    }
+    setGenerateLoading(true);
+    const token = getCookie('access_token');
+    if (!token) return;
+    try {
+      const now = new Date();
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      const timestamp = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+      const res = await fetch('http://localhost:5000/api/summaries', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          collection_id: id,
+          highlight_ids: selectedSummaryHighlights,
+          timestamp
+        })
+      });
+      if (!res.ok) throw new Error('Failed to generate summary');
+      const data = await res.json();
+      setCollection((prev: any) => ({
+        ...prev,
+        summaries: [...(prev?.summaries || []), data.summary || data]
+      }));
+      setShowGenerateSummary(false);
+      setSelectedSummaryHighlights([]);
+    } catch (err: any) {
+      setGenerateError(err.message || 'Could not generate summary');
+    } finally {
+      setGenerateLoading(false);
+    }
+  };
+
+  const handleRemoveSummary = async (summaryId: string) => {
+    setRemoveSummaryLoading(summaryId);
+    setRemoveSummaryError(null);
+    const token = getCookie('access_token');
+    if (!token) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/summaries/${summaryId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to delete summary');
+      setCollection((prev: any) => ({
+        ...prev,
+        summaries: (prev?.summaries || []).filter((s: any) => s.id !== summaryId)
+      }));
+    } catch (err: any) {
+      setRemoveSummaryError(err.message || 'Could not delete summary');
+    } finally {
+      setRemoveSummaryLoading(null);
+    }
+  };
+
+  const handleShowSummaryDetails = async (summaryId: string) => {
+    setShowSummaryDetails(true);
+    setSummaryDetails(null);
+    setSummaryDetailsLoading(true);
+    setSummaryDetailsError(null);
+    const token = getCookie('access_token');
+    if (!token) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/summaries/${summaryId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch summary details');
+      const data = await res.json();
+      setSummaryDetails(data.summary || data);
+    } catch (err: any) {
+      setSummaryDetailsError(err.message || 'Could not fetch summary details');
+    } finally {
+      setSummaryDetailsLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen w-full flex bg-gradient-to-br from-[#181c2f] to-[#23243a]">
       {/* Sidebar */}
@@ -360,6 +463,101 @@ export default function CollectionDetailsPage() {
                 )}
                 {removeHighlightError && <div className="text-[#ff6b6b] text-xs mt-2">{removeHighlightError}</div>}
               </div>
+              {/* Summaries button at the bottom */}
+              <div className="flex flex-row gap-4 mt-8 self-end">
+                <button
+                  className="rounded-xl px-6 py-2 bg-gradient-to-r from-[#7f5fff] to-[#5e8bff] text-white font-semibold shadow hover:from-[#5e8bff] hover:to-[#7f5fff] transition-colors"
+                  onClick={() => setShowSummaries(true)}
+                >Summaries</button>
+                <button
+                  className="rounded-xl px-6 py-2 bg-gradient-to-r from-[#5e8bff] to-[#7f5fff] text-white font-semibold shadow hover:from-[#7f5fff] hover:to-[#5e8bff] transition-colors"
+                  onClick={() => setShowGenerateSummary(true)}
+                >Generate Summary</button>
+              </div>
+              {showSummaries && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                  <div className="bg-[#23243a] rounded-2xl p-8 shadow-xl flex flex-col gap-6 min-w-[340px] max-w-[90vw] w-full max-w-lg relative">
+                    <button
+                      className="absolute top-2 right-2 text-[#7f5fff] hover:text-white text-2xl font-bold"
+                      onClick={() => setShowSummaries(false)}
+                    >×</button>
+                    <span className="text-white text-lg font-bold mb-2">Summaries</span>
+                    {collection.summaries && collection.summaries.length > 0 ? (
+                      <ul className="flex flex-col gap-3">
+                        {collection.summaries.map((s: any, i: number) => (
+                          <li
+                            key={s.id || i}
+                            className="bg-[#181c2f] rounded-xl p-4 shadow flex flex-col gap-2 relative cursor-pointer hover:bg-[#7f5fff]/20 transition-colors"
+                            onClick={e => {
+                              // Prevent click if X is clicked
+                              if ((e.target as HTMLElement).closest('button')) return;
+                              handleShowSummaryDetails(s.id);
+                            }}
+                          >
+                            <button
+                              className="absolute top-2 right-2 z-10 text-[#ff6b6b] hover:text-white text-lg font-bold bg-transparent border-none outline-none"
+                              onClick={e => { e.stopPropagation(); handleRemoveSummary(s.id); }}
+                              disabled={removeSummaryLoading === s.id}
+                              aria-label="Delete Summary"
+                            >{removeSummaryLoading === s.id ? '...' : '×'}</button>
+                            <div className="text-white font-semibold">{s.title || `Summary ${i + 1}`}</div>
+                            {s.text && <div className="text-[#b0b3c7] text-sm">{s.text}</div>}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="text-[#b0b3c7] text-center">No summaries available.</div>
+                    )}
+                  </div>
+                </div>
+              )}
+              {showGenerateSummary && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                  <div className="bg-[#23243a] rounded-2xl p-8 shadow-xl flex flex-col gap-6 min-w-[340px] max-w-[90vw] w-full max-w-lg relative">
+                    <button
+                      className="absolute top-2 right-2 text-[#7f5fff] hover:text-white text-2xl font-bold"
+                      onClick={() => setShowGenerateSummary(false)}
+                    >×</button>
+                    <span className="text-white text-lg font-bold mb-2">Generate Summary</span>
+                    <div className="max-h-64 overflow-y-auto flex flex-col gap-2">
+                      {collection.highlights && collection.highlights.length > 0 ? (
+                        <ul className="flex flex-col gap-2">
+                          {collection.highlights.map((h: any, i: number) => (
+                            <li key={h.id || i} className="bg-[#181c2f] rounded-xl p-3 shadow flex flex-row items-center gap-3 cursor-pointer select-none">
+                              <label className="flex items-center gap-3 cursor-pointer select-none w-full">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedSummaryHighlights.includes(h.id)}
+                                  onChange={() => handleSelectSummaryHighlight(h.id)}
+                                  className="accent-[#7f5fff] w-4 h-4"
+                                />
+                                <div className="font-semibold text-base text-white truncate w-full">
+                                  {h.text?.length > 60 ? h.text.slice(0, 60) + '...' : h.text}
+                                </div>
+                              </label>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <div className="text-[#b0b3c7] text-center">No highlights found in this collection.</div>
+                      )}
+                    </div>
+                    {generateError && <div className="text-[#ff6b6b] text-sm">{generateError}</div>}
+                    <div className="flex gap-4 justify-end mt-2">
+                      <button
+                        className="rounded-xl px-6 py-2 bg-gradient-to-r from-[#5e8bff] to-[#7f5fff] text-white font-semibold shadow hover:from-[#7f5fff] hover:to-[#5e8bff] transition-colors"
+                        onClick={handleGenerateSummary}
+                        disabled={generateLoading}
+                      >{generateLoading ? 'Generating...' : 'Generate'}</button>
+                      <button
+                        className="rounded-xl px-6 py-2 bg-[#23243a] border border-[#7f5fff] text-[#7f5fff] font-semibold shadow hover:bg-[#181c2f] transition-colors"
+                        onClick={() => setShowGenerateSummary(false)}
+                        disabled={generateLoading}
+                      >Cancel</button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           ) : null}
         </div>
@@ -411,6 +609,77 @@ export default function CollectionDetailsPage() {
           </div>
         </div>
       )}
+      {showSummaryDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-[#23243a] rounded-2xl p-8 shadow-xl flex flex-col gap-6 min-w-[340px] max-w-[90vw] w-full max-w-3xl relative">
+            <button
+              className="absolute top-2 right-2 text-[#7f5fff] hover:text-white text-2xl font-bold"
+              onClick={() => setShowSummaryDetails(false)}
+            >×</button>
+            <span className="text-white text-lg font-bold mb-2">Summary Details</span>
+            {summaryDetailsLoading ? (
+              <div className="text-white text-center">Loading...</div>
+            ) : summaryDetailsError ? (
+              <div className="text-[#ff6b6b] text-center">{summaryDetailsError}</div>
+            ) : summaryDetails ? (
+              <SummaryDetailsContent summaryDetails={summaryDetails} onShowHighlights={() => {
+                setHighlightsToShow(summaryDetails.highlights || []);
+                setShowHighlightsModal(true);
+              }} />
+            ) : null}
+          </div>
+        </div>
+      )}
+      {showHighlightsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-[#23243a] rounded-2xl p-8 shadow-xl flex flex-col gap-6 min-w-[340px] max-w-[90vw] w-full max-w-lg relative">
+            <button
+              className="absolute top-2 right-2 text-[#7f5fff] hover:text-white text-2xl font-bold"
+              onClick={() => setShowHighlightsModal(false)}
+            >×</button>
+            <span className="text-white text-lg font-bold mb-2">Summary Highlights</span>
+            <div className="max-h-80 overflow-y-auto">
+              {highlightsToShow && highlightsToShow.length > 0 ? (
+                <ul className="flex flex-col gap-2 mt-2">
+                  {highlightsToShow.map((h: any, i: number) => (
+                    <li key={h.id || i} className="bg-[#181c2f] rounded-xl p-3 shadow flex flex-col gap-1">
+                      <div className="text-white text-sm">{h.text || "No text"}</div>
+                      {h.url && <div className="text-xs text-[#b0b3c7] break-all">{h.url}</div>}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-[#b0b3c7] text-xs mt-2">No highlights for this summary.</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SummaryDetailsContent({ summaryDetails, onShowHighlights }: { summaryDetails: any, onShowHighlights: () => void }) {
+  const creator = summaryDetails.collection?.owner?.username || summaryDetails.collection?.owner?.email || "Unknown";
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="max-h-100 overflow-y-auto text-white font-semibold text-base whitespace-pre-line">
+        {summaryDetails.content || "No content available."}
+      </div>
+      {summaryDetails.timestamp && (
+        <div className="text-xs text-[#7f5fff]">
+          Created: {new Date(summaryDetails.timestamp).toLocaleString()}
+        </div>
+      )}
+      <div className="text-xs text-[#b0b3c7]">
+        Creator: <span className="font-semibold">{creator}</span>
+      </div>
+      <button
+        className="rounded-xl px-4 py-1 bg-gradient-to-r from-[#7f5fff] to-[#5e8bff] text-white font-semibold shadow hover:from-[#5e8bff] hover:to-[#7f5fff] transition-colors text-xs w-fit mt-2"
+        onClick={onShowHighlights}
+      >
+        Show Highlights
+      </button>
     </div>
   );
 } 

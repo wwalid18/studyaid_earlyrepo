@@ -15,10 +15,6 @@ class SummaryFacade:
         content = data.get('content')
         timestamp = data.get('timestamp', datetime.utcnow())
 
-        # Check if a summary with the same highlights already exists for this collection
-        if not Summary.can_generate_summary(collection_id, highlight_ids):
-            raise ValueError("A summary with these highlights already exists for this collection")
-
         # Get highlights and collection
         highlights = Highlight.query.filter(Highlight.id.in_(highlight_ids)).all()
         collection = Collection.query.get(collection_id)
