@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.facade.collection_facade import CollectionFacade
 from app.schemas.collection import collections_schema, collection_schema, collection_create_schema
-from app.schemas.highlight import highlights_schema
+from app.schemas.highlight import highlights_schema, highlight_schema
 from app.models.user import User
 from app.utils.db import db
 
@@ -137,6 +137,21 @@ def get_highlights_by_collection(collection_id):
         }), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 404
+
+@collection_bp.route('/collections/<collection_id>/highlights/<highlight_id>', methods=['DELETE'])
+@jwt_required()
+def remove_highlight_from_collection(collection_id, highlight_id):
+    current_user_id = get_jwt_identity()
+    try:
+        highlight = CollectionFacade.remove_highlight_from_collection(collection_id, highlight_id, current_user_id)
+        return jsonify({
+            'message': f'Highlight {highlight_id} removed from collection {collection_id}',
+            'highlight': highlight_schema.dump(highlight)
+        }), 200
+    except ValueError as e:
+        return jsonify({'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # New collaboration endpoints
 @collection_bp.route('/collections/<collection_id>/collaborators', methods=['POST'])

@@ -23,11 +23,13 @@ const RollingGallery = forwardRef(({
   pauseOnHover = false,
   collections = [],
   onRequestRemoveCollection,
+  onCardClick,
 }: {
   autoplay?: boolean;
   pauseOnHover?: boolean;
   collections?: Collection[];
   onRequestRemoveCollection?: (collectionId: string) => void;
+  onCardClick?: (collectionId: string) => void;
 }, ref) => {
   // images prop will be used to fill the cards; if empty, cards will be empty
 
@@ -41,15 +43,12 @@ const RollingGallery = forwardRef(({
   }, []);
 
   // Set card width to a fixed value
-  const faceWidth = 260;
+  const faceWidth = 320;
   const faceGap = 1; // smaller gap in px between cards
   const faceCount = collections.length;
-  // Calculate the radius so that the cards are spaced with a fixed gap
-  // Arc length per card = faceWidth + faceGap
-  // Total arc = faceCount * (faceWidth + faceGap)
-  // Circumference = total arc = 2 * PI * radius
-  // => radius = (faceCount * (faceWidth + faceGap)) / (2 * Math.PI)
-  const radius = faceCount > 1 ? (faceCount * (faceWidth + faceGap)) / (2 * Math.PI) : 0;
+  // Use a fixed radius so card size and gap never change visually
+  const radius = 500; // px, more compact
+  const angle = faceCount > 0 ? 360 / faceCount : 0;
   const cylinderWidth = faceCount * faceWidth + (faceCount * faceGap);
 
   const dragFactor = 0.05;
@@ -150,18 +149,20 @@ const RollingGallery = forwardRef(({
                 className="group absolute flex h-fit items-center justify-center p-[8%] [backface-visibility:hidden] md:p-[6%]"
                 style={{
                   width: `${faceWidth}px`,
-                  transform: `rotateY(${(360 / faceCount) * i}deg) translateZ(${radius}px)`,
+                  transform: `rotateY(${angle * i}deg) translateZ(${radius}px)`,
+                  cursor: onCardClick ? 'pointer' : undefined,
                 }}
+                onClick={() => onCardClick && col.id && onCardClick(col.id)}
               >
-                <div className="flex flex-col w-[260px] h-[120px] rounded-[15px] border-[3px] border-white bg-[#23243a] overflow-hidden relative">
+                <div className="flex flex-col w-[220px] h-[110px] rounded-[15px] border-[3px] border-white bg-[#23243a] overflow-hidden relative">
                   {/* Remove (X) button */}
                   <button
                     className="absolute top-2 right-2 z-10 text-[#ff6b6b] hover:text-white text-lg font-bold bg-transparent border-none outline-none"
-                    onClick={() => { setTargetCollection(col); setShowRemovePopup(true); }}
+                    onClick={e => { e.stopPropagation(); setTargetCollection(col); setShowRemovePopup(true); }}
                     aria-label="Remove Collection"
                   >×</button>
                   {/* Top: Name */}
-                  <div className="flex items-center justify-center w-full h-[60px] bg-gradient-to-r from-[#23243a] to-[#181c2f] text-white text-xl font-extrabold px-4 py-2 tracking-tight shadow-sm border-b-2 border-[#23243a] rounded-t-[12px] truncate">
+                  <div className="flex items-center justify-center w-full h-[48px] bg-gradient-to-r from-[#23243a] to-[#181c2f] text-white text-lg font-extrabold px-3 py-2 tracking-tight shadow-sm border-b-2 border-[#23243a] rounded-t-[12px] truncate">
                     {col.title}
                   </div>
                   {/* Middle: Image (if any) */}

@@ -120,6 +120,22 @@ class CollectionFacade:
         return highlights
 
     @staticmethod
+    def remove_highlight_from_collection(collection_id, highlight_id, current_user_id):
+        collection = Collection.query.get_or_404(collection_id)
+        highlight = Highlight.query.get_or_404(highlight_id)
+        # Only allow if user can access the collection
+        user = User.query.get_or_404(current_user_id)
+        if not collection.can_access(user):
+            raise ValueError('Unauthorized access to collection')
+        # Only remove if the highlight is in this collection
+        if highlight.collection_id != collection_id:
+            raise ValueError('Highlight is not in this collection')
+        highlight.collection_id = None
+        db.session.commit()
+        collection.highlights_count = len(collection.highlights)
+        return highlight
+
+    @staticmethod
     def get_all_accessible_collections(user_id):
         user = User.query.get_or_404(user_id)
         return user.get_collections()

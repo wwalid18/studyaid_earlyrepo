@@ -170,6 +170,10 @@ export default function CollectionsPage() {
     }
   };
 
+  const handleCardClick = (collectionId: string) => {
+    router.push(`/collections/${collectionId}`);
+  };
+
   // Remove/leave collection logic
   const handleRequestRemoveCollection = async (collectionId: string) => {
     setRemoveError(null);
@@ -271,7 +275,7 @@ export default function CollectionsPage() {
           {/* Header */}
           <div className="flex items-center justify-between mb-6 md:mb-10">
             <div className="flex flex-col">
-              <span className="text-2xl font-bold text-white leading-tight">Your Collections</span>
+              <span className="text-2xl font-bold text-white leading-tight">Collections</span>
               <span className="text-sm text-[#b0b3c7] mt-1">All your collections</span>
             </div>
             <Image src="/logo.png" alt="StudyAid Logo" width={56} height={56} />
@@ -283,6 +287,7 @@ export default function CollectionsPage() {
             pauseOnHover={true}
             collections={collections}
             onRequestRemoveCollection={handleRequestRemoveCollection}
+            onCardClick={handleCardClick}
           />
           <div className="flex flex-col gap-6 text-white text-lg">
             <div className="flex flex-row items-center justify-end gap-2 mb-4 w-full">
@@ -328,11 +333,16 @@ export default function CollectionsPage() {
                       collections.map((col, idx) => (
                         <li
                           key={col.id || idx}
-                          className="bg-[#181c2f] rounded-xl p-3 shadow flex flex-row items-center gap-3 cursor-pointer hover:bg-[#7f5fff]/30 transition-colors"
-                          onClick={() => handleJumpToCollection(idx)}
+                          className="bg-[#181c2f] rounded-xl p-3 shadow flex flex-row items-center gap-3 cursor-pointer hover:bg-[#7f5fff]/30 transition-colors relative"
+                          onClick={() => router.push(`/collections/${col.id}`)}
                         >
                           <span className="font-semibold text-white truncate max-w-[180px]">{col.title}</span>
                           {col.description && <span className="text-[#b0b3c7] text-xs truncate">{col.description}</span>}
+                          <button
+                            className="absolute top-2 right-2 z-10 text-[#ff6b6b] hover:text-white text-lg font-bold bg-transparent border-none outline-none"
+                            onClick={e => { e.stopPropagation(); handleRequestRemoveCollection(col.id); }}
+                            aria-label="Remove Collection"
+                          >×</button>
                         </li>
                       ))
                     )}
