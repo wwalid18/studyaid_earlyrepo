@@ -1,6 +1,6 @@
 "use client";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import SwirlBackground from "@/components/SwirlBackground";
 import React from "react";
@@ -25,6 +25,19 @@ function getDomain(url: string) {
   }
 }
 
+function parseJwt(token: string) {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+      return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+    }).join(''));
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+}
+
 export default function CollectionsPage() {
   const router = useRouter();
   const [showCreate, setShowCreate] = useState(false);
@@ -38,6 +51,11 @@ export default function CollectionsPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [createLoading, setCreateLoading] = useState(false);
   const [collections, setCollections] = useState<any[]>([]);
+  const galleryRef = useRef<any>(null);
+  const [showList, setShowList] = useState(false);
+  const [removePopup, setRemovePopup] = useState<{id: string, title: string, isOwner: boolean} | null>(null);
+  const [removeLoading, setRemoveLoading] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && !getCookie('access_token')) {
@@ -145,6 +163,65 @@ export default function CollectionsPage() {
     }
   };
 
+  const handleJumpToCollection = (idx: number) => {
+    if (galleryRef.current && typeof galleryRef.current.setActiveIdx === 'function') {
+      galleryRef.current.setActiveIdx(idx);
+      setShowList(false);
+    }
+  };
+
+  // Remove/leave collection logic
+  const handleRequestRemoveCollection = async (collectionId: string) => {
+    setRemoveError(null);
+    const token = getCookie('access_token');
+    if (!token) return;
+    try {
+      const res = await fetch(`http://localhost:5000/api/collections/${collectionId}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch collection info');
+      const data = await res.json();
+      const collection = data.collection || data; // fallback if not wrapped
+      // Parse user id from JWT
+      const jwt = parseJwt(token);
+      const userId = jwt && (jwt.user_id || jwt.sub || jwt.id);
+      const ownerId = collection.owner && collection.owner.id;
+      const isOwner = userId && ownerId && userId === ownerId;
+      setRemovePopup({ id: collectionId, title: collection.title, isOwner });
+    } catch (err: any) {
+      setRemoveError(err.message || 'Could not fetch collection info');
+    }
+  };
+
+  const handleConfirmRemove = async () => {
+    if (!removePopup) return;
+    setRemoveLoading(true);
+    setRemoveError(null);
+    const token = getCookie('access_token');
+    if (!token) return;
+    try {
+      let res;
+      if (removePopup.isOwner) {
+        res = await fetch(`http://localhost:5000/api/collections/${removePopup.id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      } else {
+        res = await fetch(`http://localhost:5000/api/collections/${removePopup.id}/collaborators/me`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+      }
+      if (!res.ok) throw new Error('Failed to remove collection');
+      setCollections(prev => prev.filter(c => c.id !== removePopup.id));
+      setRemovePopup(null);
+    } catch (err: any) {
+      setRemoveError(err.message || 'Could not remove collection');
+    } finally {
+      setRemoveLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen w-full flex bg-gradient-to-br from-[#181c2f] to-[#23243a]">
       {/* Sidebar */}
@@ -201,15 +278,68 @@ export default function CollectionsPage() {
           </div>
           {/* Rolling Gallery of collections */}
           <RollingGallery
+            ref={galleryRef}
             autoplay={true}
             pauseOnHover={true}
             collections={collections}
+            onRequestRemoveCollection={handleRequestRemoveCollection}
           />
           <div className="flex flex-col gap-6 text-white text-lg">
-            <button
-              className="self-end rounded-xl px-6 py-2 bg-gradient-to-r from-[#7f5fff] to-[#5e8bff] text-white font-semibold shadow hover:from-[#5e8bff] hover:to-[#7f5fff] transition-colors mb-4"
-              onClick={() => setShowCreate(true)}
-            >+ Create Collection</button>
+            <div className="flex flex-row items-center justify-end gap-2 mb-4 w-full">
+              <button
+                className="rounded-xl px-4 py-2 bg-[#23243a] hover:bg-[#7f5fff] text-white font-semibold shadow transition-colors ml-auto"
+                onClick={() => setShowList(true)}
+                style={{ order: 0 }}
+              >Get List</button>
+              <button
+                className="rounded-full p-2 bg-[#23243a] hover:bg-[#7f5fff] text-white shadow transition-colors"
+                aria-label="Previous Collection"
+                onClick={() => galleryRef.current?.prev()}
+                style={{ outline: 'none', border: 'none', order: 1 }}
+              >
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 18l-6-6 6-6" /></svg>
+              </button>
+              <button
+                className="rounded-full p-2 bg-[#23243a] hover:bg-[#7f5fff] text-white shadow transition-colors"
+                aria-label="Next Collection"
+                onClick={() => galleryRef.current?.next()}
+                style={{ outline: 'none', border: 'none', order: 2 }}
+              >
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
+              </button>
+              <button
+                className="rounded-xl px-6 py-2 bg-gradient-to-r from-[#7f5fff] to-[#5e8bff] text-white font-semibold shadow hover:from-[#5e8bff] hover:to-[#7f5fff] transition-colors"
+                onClick={() => setShowCreate(true)}
+                style={{ order: 3 }}
+              >+ Create Collection</button>
+            </div>
+            {showList && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                <div className="bg-[#23243a] rounded-2xl p-8 shadow-xl flex flex-col gap-4 min-w-[340px] max-w-[90vw] w-full max-h-[80vh] overflow-y-auto relative">
+                  <button
+                    className="absolute top-2 right-2 text-[#7f5fff] hover:text-white text-2xl font-bold"
+                    onClick={() => setShowList(false)}
+                  >×</button>
+                  <span className="text-white text-lg font-bold mb-2">Collections List</span>
+                  <ul className="flex flex-col gap-2">
+                    {collections.length === 0 ? (
+                      <li className="text-[#b0b3c7] text-center">No collections available.</li>
+                    ) : (
+                      collections.map((col, idx) => (
+                        <li
+                          key={col.id || idx}
+                          className="bg-[#181c2f] rounded-xl p-3 shadow flex flex-row items-center gap-3 cursor-pointer hover:bg-[#7f5fff]/30 transition-colors"
+                          onClick={() => handleJumpToCollection(idx)}
+                        >
+                          <span className="font-semibold text-white truncate max-w-[180px]">{col.title}</span>
+                          {col.description && <span className="text-[#b0b3c7] text-xs truncate">{col.description}</span>}
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                </div>
+              </div>
+            )}
             {/* Modal for creating collection */}
             {showCreate && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
@@ -272,6 +402,37 @@ export default function CollectionsPage() {
                     <button
                       className="rounded-xl px-6 py-2 bg-[#23243a] border border-[#7f5fff] text-[#7f5fff] font-semibold shadow hover:bg-[#181c2f] transition-colors"
                       onClick={() => setShowCreate(false)}
+                    >Cancel</button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {/* Remove/Leave confirmation popup */}
+            {removePopup && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                <div className="bg-[#23243a] rounded-2xl p-8 shadow-xl flex flex-col gap-6 min-w-[340px] max-w-[90vw] w-full max-h-[80vh] overflow-y-auto relative">
+                  <button
+                    className="absolute top-2 right-2 text-[#7f5fff] hover:text-white text-2xl font-bold"
+                    onClick={() => setRemovePopup(null)}
+                  >×</button>
+                  <span className="text-white text-lg font-bold mb-2">{removePopup.isOwner ? 'Delete Collection' : 'Leave Collection'}</span>
+                  <div className="text-[#b0b3c7] text-base">
+                    {removePopup.isOwner
+                      ? <>Are you sure you want to delete the collection <span className="text-[#7f5fff] font-semibold">{removePopup.title}</span>?</>
+                      : <>You are not the owner of this collection. You can't delete it. Proceed with leaving the collection <span className="text-[#7f5fff] font-semibold">{removePopup.title}</span>?</>
+                    }
+                  </div>
+                  {removeError && <div className="text-[#ff6b6b] text-sm">{removeError}</div>}
+                  <div className="flex gap-4 justify-end mt-4">
+                    <button
+                      className="rounded-xl px-6 py-2 bg-[#ff6b6b] text-white font-semibold shadow hover:bg-[#ff4b4b] transition-colors"
+                      onClick={handleConfirmRemove}
+                      disabled={removeLoading}
+                    >{removePopup.isOwner ? 'Delete' : 'Leave'}</button>
+                    <button
+                      className="rounded-xl px-6 py-2 bg-[#23243a] border border-[#7f5fff] text-[#7f5fff] font-semibold shadow hover:bg-[#181c2f] transition-colors"
+                      onClick={() => setRemovePopup(null)}
+                      disabled={removeLoading}
                     >Cancel</button>
                   </div>
                 </div>
