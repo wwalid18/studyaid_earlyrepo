@@ -9,6 +9,7 @@ from app.schemas.quiz_attempt import (
 from app.models.quiz import Quiz
 from app.models.collection import Collection
 from app.models.user import User
+from sqlalchemy.orm import joinedload
 
 quiz_attempt_bp = Blueprint('quiz_attempt', __name__)
 
@@ -54,7 +55,8 @@ def get_quiz_attempts(quiz_id):
     if not (collection.user_id == current_user_id or collection.is_collaborator(user)):
         return jsonify({'error': 'Unauthorized'}), 403
 
-    attempts = QuizAttemptFacade.get_quiz_attempts(quiz_id)
+    from app.models.quiz_attempt import QuizAttempt
+    attempts = QuizAttempt.query.filter_by(quiz_id=quiz_id).options(joinedload(QuizAttempt.user)).all()
     return jsonify(quiz_attempts_schema.dump(attempts)), 200
 
 @quiz_attempt_bp.route('/quizzes/<quiz_id>/leaderboard', methods=['GET'])
@@ -80,3 +82,44 @@ def get_my_quiz_attempt(quiz_id):
     if not attempt:
         return jsonify({'message': 'No attempt found'}), 404
     return quiz_attempt_schema.dump(attempt), 200
+
+@quiz_attempt_bp.route('/quizzes/<quiz_id>/attempts/<attempt_id>/review', methods=['GET'])
+@jwt_required()
+def review_quiz_attempt(quiz_id, attempt_id):
+    current_user_id = get_jwt_identity()
+    from app.models.quiz_attempt import QuizAttempt
+    from app.models.quiz import Quiz
+    attempt = QuizAttempt.query.get_or_404(attempt_id)
+    quiz = Quiz.query.get_or_404(quiz_id)
+    # Only allow if user is owner/collaborator or the attempt owner
+    summary = quiz.summary
+    collection = summary.collection
+    user = User.query.get(current_user_id)
+    if not (collection.user_id == current_user_id or collection.is_collaborator(user) or attempt.user_id == current_user_id):
+        return jsonify({'error': 'Unauthorized'}), 403
+    correct_answers = quiz.get_correct_answers()
+    user_answers = attempt.answers
+    questions = quiz.questions
+    incorrect = []
+    user_answers_text = []
+    correct_answers_text = []
+    for idx, (user_ans, correct_ans) in enumerate(zip(user_answers, correct_answers)):
+        user_ans_text = questions[idx]['options'].get(user_ans, '') if user_ans else ''
+        correct_ans_text = questions[idx]['options'].get(correct_ans, '') if correct_ans else ''
+        user_answers_text.append(user_ans_text)
+        correct_answers_text.append(correct_ans_text)
+        if user_ans != correct_ans:
+            incorrect.append(idx)
+    wrong_questions = [questions[i]['question'] for i in incorrect]
+    return jsonify({
+        'score': attempt.score,
+        'total_questions': attempt.total_questions,
+        'percentage': attempt.percentage,
+        'user_answers': user_answers,
+        'user_answers_text': user_answers_text,
+        'correct_answers': correct_answers,
+        'correct_answers_text': correct_answers_text,
+        'incorrect_indices': incorrect,
+        'questions': [q['question'] for q in questions],
+        'wrong_questions': wrong_questions
+    }), 200

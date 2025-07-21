@@ -48,6 +48,10 @@ export default function CollectionDetailsPage() {
   const [summaryDetailsError, setSummaryDetailsError] = useState<string | null>(null);
   const [showHighlightsModal, setShowHighlightsModal] = useState(false);
   const [highlightsToShow, setHighlightsToShow] = useState<any[]>([]);
+  const [quiz, setQuiz] = useState<any>(null);
+  const [quizLoading, setQuizLoading] = useState(false);
+  const [quizError, setQuizError] = useState<string | null>(null);
+  const [showQuizModal, setShowQuizModal] = useState(false);
 
   // Helper to get user id from JWT
   function parseJwt(token: string) {
@@ -354,8 +358,10 @@ export default function CollectionDetailsPage() {
   const handleShowSummaryDetails = async (summaryId: string) => {
     setShowSummaryDetails(true);
     setSummaryDetails(null);
+    setQuiz(null);
     setSummaryDetailsLoading(true);
     setSummaryDetailsError(null);
+    setQuizError(null);
     const token = getCookie('access_token');
     if (!token) return;
     try {
@@ -373,12 +379,89 @@ export default function CollectionDetailsPage() {
         return;
       }
       const data = await res.json();
-      setSummaryDetails(data.summary || data);
+      const summary = data.summary || data;
+      setSummaryDetails(summary);
+      // Check for quiz in summary object
+      if (summary.quiz && Array.isArray(summary.quiz.questions)) {
+        setQuiz({
+          questions: summary.quiz.questions,
+          title: summary.quiz.title || 'Quiz',
+        });
+      } else {
+        // Fallback: try GET /api/quizzes?summary_id=...
+        const quizRes = await fetch(`http://localhost:5000/api/quizzes?summary_id=${summary.id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (quizRes.ok) {
+          const quizData = await quizRes.json();
+          if (Array.isArray(quizData)) {
+            setQuiz({ questions: quizData, title: 'Quiz' });
+          } else if (quizData && Array.isArray(quizData.quiz)) {
+            setQuiz({ questions: quizData.quiz, title: quizData.title || 'Quiz' });
+          } else if (quizData && quizData.questions && Array.isArray(quizData.questions)) {
+            setQuiz({ questions: quizData.questions, title: quizData.title || 'Quiz' });
+          } else {
+            setQuiz(null);
+          }
+        } else {
+          setQuiz(null);
+        }
+      }
     } catch (err: any) {
       setSummaryDetailsError(err.message || 'Could not fetch summary details');
+      setQuiz(null);
     } finally {
       setSummaryDetailsLoading(false);
     }
+  };
+
+  const handleGenerateQuiz = async (summaryId: string) => {
+    setQuizLoading(true);
+    setQuizError(null);
+    const token = getCookie('access_token');
+    if (!token) return;
+    try {
+      const res = await fetch('http://localhost:5000/api/quizzes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ summary_id: summaryId })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        let msg = err?.error || err?.message;
+        if (!msg && err && typeof err === 'object') {
+          const fieldErr = Object.values(err).find(v => Array.isArray(v) && v.length && typeof v[0] === 'string');
+          if (Array.isArray(fieldErr)) msg = fieldErr[0];
+        }
+        setQuizError(msg || 'Could not generate quiz');
+        setQuiz(null);
+        return;
+      }
+      const data = await res.json();
+      // Get quiz id from response (support both {quiz: {...}} and {...})
+      const quizId = data.quiz?.id || data.id || (Array.isArray(data.quiz) && data.quiz[0]?.id) || null;
+      if (quizId) {
+        router.push(`/quizzes/${quizId}`);
+        return;
+      }
+      // fallback: setQuiz for modal (should not happen)
+      if (Array.isArray(data)) setQuiz(data);
+      else if (data && Array.isArray(data.quiz)) setQuiz(data.quiz);
+      else setQuiz(null);
+      setShowQuizModal(true);
+    } catch (err: any) {
+      setQuizError(err.message || 'Could not generate quiz');
+      setQuiz(null);
+    } finally {
+      setQuizLoading(false);
+    }
+  };
+
+  const handleOpenQuiz = () => {
+    setShowQuizModal(true);
   };
 
   return (
@@ -683,22 +766,32 @@ export default function CollectionDetailsPage() {
       )}
       {showSummaryDetails && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-[#23243a] rounded-2xl p-8 shadow-xl flex flex-col gap-6 min-w-[340px] max-w-[90vw] w-full max-w-3xl relative">
+          <div className="bg-[#23243a] rounded-2xl p-8 shadow-xl flex flex-col gap-6 w-[700px] h-[700px] max-w-[95vw] max-h-[95vh] relative overflow-hidden">
             <button
               className="absolute top-2 right-2 text-[#7f5fff] hover:text-white text-2xl font-bold"
               onClick={() => setShowSummaryDetails(false)}
             >×</button>
             <span className="text-white text-lg font-bold mb-2">Summary Details</span>
+            <div className="flex-1 min-h-0 overflow-y-auto">
             {summaryDetailsLoading ? (
               <div className="text-white text-center">Loading...</div>
             ) : summaryDetailsError ? (
               <div className="text-[#ff6b6b] text-center">{summaryDetailsError}</div>
             ) : summaryDetails ? (
-              <SummaryDetailsContent summaryDetails={summaryDetails} onShowHighlights={() => {
-                setHighlightsToShow(summaryDetails.highlights || []);
-                setShowHighlightsModal(true);
-              }} />
+              <SummaryDetailsContent
+                summaryDetails={summaryDetails}
+                onShowHighlights={() => {
+                  setHighlightsToShow(summaryDetails.highlights || []);
+                  setShowHighlightsModal(true);
+                }}
+                quiz={quiz}
+                quizLoading={quizLoading}
+                quizError={quizError}
+                onGenerateQuiz={() => handleGenerateQuiz(summaryDetails.id)}
+                onOpenQuiz={handleOpenQuiz}
+              />
             ) : null}
+            </div>
           </div>
         </div>
       )}
@@ -731,27 +824,104 @@ export default function CollectionDetailsPage() {
   );
 }
 
-function SummaryDetailsContent({ summaryDetails, onShowHighlights }: { summaryDetails: any, onShowHighlights: () => void }) {
+function SummaryDetailsContent({ summaryDetails, onShowHighlights, quiz, quizLoading, quizError, onGenerateQuiz, onOpenQuiz }: {
+  summaryDetails: any,
+  onShowHighlights: () => void,
+  quiz: any,
+  quizLoading: boolean,
+  quizError: string | null,
+  onGenerateQuiz: () => void,
+  onOpenQuiz: () => void,
+}) {
   const creator = summaryDetails.user?.username || summaryDetails.user?.email || summaryDetails.user_id || "Unknown";
+  const hasQuiz = quiz && quiz.questions && Array.isArray(quiz.questions) && quiz.questions.length > 0;
+  const router = useRouter();
+
+  // State for user quiz attempt
+  const [attemptStatus, setAttemptStatus] = useState<'loading'|'taken'|'not-taken'|'error'>('loading');
+  const [attemptInfo, setAttemptInfo] = useState<any>(null);
+
+  useEffect(() => {
+    if (!hasQuiz || !summaryDetails.quiz?.id) {
+      setAttemptStatus('not-taken');
+      setAttemptInfo(null);
+      return;
+    }
+    setAttemptStatus('loading');
+    setAttemptInfo(null);
+    const token = typeof window !== 'undefined' ? getCookie('access_token') : null;
+    if (!token) {
+      setAttemptStatus('error');
+      setAttemptInfo(null);
+      return;
+    }
+    fetch(`http://localhost:5000/api/quizzes/${summaryDetails.quiz.id}/my-attempt`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => {
+        if (res.ok) return res.json();
+        if (res.status === 404) return Promise.reject({ notFound: true });
+        return res.json().then(e => Promise.reject(e));
+      })
+      .then(data => {
+        setAttemptStatus('taken');
+        setAttemptInfo(data);
+      })
+      .catch(e => {
+        if (e && e.notFound) setAttemptStatus('not-taken');
+        else setAttemptStatus('error');
+      });
+  }, [hasQuiz, summaryDetails.quiz?.id]);
+
   return (
-    <div className="flex flex-col gap-3">
-      <div className="max-h-100 overflow-y-auto text-white font-semibold text-base whitespace-pre-line">
-        {summaryDetails.content || "No content available."}
-      </div>
-      {summaryDetails.timestamp && (
-        <div className="text-xs text-[#7f5fff]">
-          Created: {new Date(summaryDetails.timestamp).toLocaleString()}
+    <div className="flex flex-col h-full justify-between gap-3">
+      <div className="flex flex-col gap-3 flex-1 min-h-0">
+        <div className="text-white text-2xl font-bold mb-2">{summaryDetails.title || "Summary"}</div>
+        <div className="flex-1 min-h-0 max-h-full overflow-y-auto text-white font-semibold text-base whitespace-pre-line">
+          {summaryDetails.content || "No content available."}
         </div>
-      )}
-      <div className="text-xs text-[#b0b3c7]">
-        Creator: <span className="font-semibold">{creator}</span>
+        {summaryDetails.timestamp && (
+          <div className="text-xs text-[#7f5fff] mt-2">
+            Created: {new Date(summaryDetails.timestamp).toLocaleString()}
+          </div>
+        )}
+        <div className="text-xs text-[#b0b3c7] mt-1">
+          Creator: <span className="font-semibold">{creator}</span>
+        </div>
+        {quizError && <div className="text-[#ff6b6b] text-xs mt-2">{quizError}</div>}
+        {/* Quiz attempt status */}
+        {hasQuiz && (
+          <div className="mt-2 text-xs">
+            {attemptStatus === 'loading' && <span className="text-[#b0b3c7]">Checking if you have taken this quiz...</span>}
+            {attemptStatus === 'taken' && <span className="text-green-400 font-semibold">You have already taken this quiz. Score: {attemptInfo?.score} / {attemptInfo?.total} ({attemptInfo?.percentage}%)</span>}
+            {attemptStatus === 'not-taken' && <span className="text-[#b0b3c7]">You have not taken this quiz yet.</span>}
+            {attemptStatus === 'error' && <span className="text-[#ff6b6b]">Could not check quiz attempt status.</span>}
+          </div>
+        )}
       </div>
-      <button
-        className="rounded-xl px-4 py-1 bg-gradient-to-r from-[#7f5fff] to-[#5e8bff] text-white font-semibold shadow hover:from-[#5e8bff] hover:to-[#7f5fff] transition-colors text-xs w-fit mt-2"
-        onClick={onShowHighlights}
-      >
-        Show Highlights
-      </button>
+      <div className="flex flex-row gap-3 mt-4 w-full">
+        <button
+          className="rounded-xl px-4 py-2 bg-gradient-to-r from-[#7f5fff] to-[#5e8bff] text-white font-semibold shadow hover:from-[#5e8bff] hover:to-[#7f5fff] transition-colors text-base w-full"
+          onClick={onShowHighlights}
+        >
+          Show Highlights
+        </button>
+        <button
+          className="rounded-xl px-4 py-2 bg-gradient-to-r from-[#5e8bff] to-[#7f5fff] text-white font-semibold shadow hover:from-[#7f5fff] hover:to-[#5e8bff] transition-colors text-base w-full"
+          onClick={hasQuiz ? () => router.push(`/quizzes/${summaryDetails.quiz?.id}`) : onGenerateQuiz}
+          disabled={quizLoading}
+        >
+          {quizLoading ? 'Loading...' : hasQuiz ? 'Open Quiz' : 'Generate Quiz'}
+        </button>
+        {hasQuiz && (
+          <button
+            className="rounded-xl px-4 py-2 bg-gradient-to-r from-[#23243a] to-[#7f5fff] text-white font-semibold shadow hover:from-[#7f5fff] hover:to-[#23243a] transition-colors text-base w-full"
+            onClick={() => router.push(`/quizzes/${summaryDetails.quiz?.id}/dashboard`)}
+          >
+            Quiz Dashboard
+          </button>
+        )}
+      </div>
     </div>
   );
 } 

@@ -338,11 +338,11 @@ export default function CollectionsPage() {
               >
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 6l6 6-6 6" /></svg>
               </button>
-              <button
+            <button
                 className="rounded-xl px-6 py-2 bg-gradient-to-r from-[#7f5fff] to-[#5e8bff] text-white font-semibold shadow hover:from-[#5e8bff] hover:to-[#7f5fff] transition-colors"
-                onClick={() => setShowCreate(true)}
+              onClick={() => setShowCreate(true)}
                 style={{ order: 3 }}
-              >+ Create Collection</button>
+            >+ Create Collection</button>
             </div>
             {showList && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">

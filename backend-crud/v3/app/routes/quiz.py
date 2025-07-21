@@ -21,10 +21,11 @@ def create_quiz():
         summary = Summary.query.get(data.get('summary_id'))
         if not summary:
             return jsonify({'error': 'Summary not found'}), 404
-            
+        
+        collection = summary.collection
         user = User.query.get(current_user_id)
-        if summary.user_id != current_user_id:
-            return jsonify({'error': 'Unauthorized access to summary'}), 403
+        if not collection or not collection.can_access(user):
+            return jsonify({'error': 'Unauthorized access to collection'}), 403
         
         quiz = QuizFacade.save_quiz(data)
         return jsonify({
@@ -55,16 +56,13 @@ def get_quiz(quiz_id):
     current_user_id = get_jwt_identity()
     try:
         quiz = QuizFacade.get_quiz_by_id(quiz_id)
-        
-        # Check if user has access to the summary
         summary = Summary.query.get(quiz.summary_id)
         if not summary:
             return jsonify({'error': 'Summary not found'}), 404
-            
         user = User.query.get(current_user_id)
-        if summary.user_id != current_user_id:
-            return jsonify({'error': 'Unauthorized access'}), 403
-        
+        collection = summary.collection
+        if not collection or not collection.can_access(user):
+            return jsonify({'error': 'Unauthorized access to collection'}), 403
         return jsonify({
             'quiz': quiz_schema.dump(quiz)
         }), 200

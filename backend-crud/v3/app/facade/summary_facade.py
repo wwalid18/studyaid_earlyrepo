@@ -69,6 +69,9 @@ class SummaryFacade:
     @staticmethod
     def delete_summary(summary_id):
         summary = Summary.query.get_or_404(summary_id)
+        # Delete related quiz if it exists
+        if summary.quiz:
+            db.session.delete(summary.quiz)
         db.session.delete(summary)
         db.session.commit()
         return True
